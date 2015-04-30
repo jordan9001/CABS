@@ -3,6 +3,7 @@ from twisted.internet.protocol import Factory
 from twisted.internet import ssl, reactor, endpoints, defer
 from twisted.protocols.basic import LineOnlyReceiver
 from twisted.enterprise import adbapi
+from twisted.python.modules import getModule
 
 import ldap
 
@@ -268,7 +269,7 @@ def main():
 	else:
 		serverstring = "ssl:" + str(settings.get("Client_Port")) + ":privateKey=" + settings.get("SSL_Priv_Key") + ":certKey=" + settings.get("SSL_Cert")
 		endpoints.serverFromString(reactor, serverstring).listen(HandleClientFactory())
-		
+
 	logging.info("Starting Server {0}".format(serverstring))
 	reactor.run()
 
