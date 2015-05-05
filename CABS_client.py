@@ -2,7 +2,6 @@
 #This is the test Client for CABS
 
 import socket, ssl
-import time
 
 def readConfigFile():
 	#testing
@@ -30,8 +29,7 @@ def main():
 			if chunk == '':
 				break;
 		print pools
-		s.close()
-
+		
 		ss = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 		ss.connect((settings.get("Host_Addr"), int(settings.get("Host_Port"))))
 		ss_wrapped = ssl.wrap_socket(ss, ca_certs="/home/sherpa/CABS/cacert.pem", ssl_version=ssl.PROTOCOL_SSLv23)
@@ -45,8 +43,7 @@ def main():
 			if chunk == '':
 				break;
 		print machine
-		ss.close()	
-
+		
 	except Exception as e:
 		print "Could not connect to {0}:{1} because {2}".format(settings.get("Host_Addr"), settings.get("Host_Port"), e)
 

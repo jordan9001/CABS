@@ -3,7 +3,6 @@ from twisted.internet.protocol import Factory
 from twisted.internet import ssl, reactor, endpoints, defer
 from twisted.protocols.basic import LineOnlyReceiver
 from twisted.enterprise import adbapi
-from twisted.python.modules import getModule
 
 import ldap
 
@@ -53,25 +52,37 @@ class HandleClient(LineOnlyReceiver):
 			#get machine for the user
 			try:
 				deferredtouple = self.getAuthLDAP(request[1],request[2],request[3])
-				deferredtouple[0].addCallback(self.checkSeat,deferredtouple[1])
+				deferredtouple[0].addCallback(self.checkSeat,deferredtouple[1],request[1],request[3])
 			except:
 				logging.debug("Could not get a machine")
 				self.transport.loseConnection()
+				
 
-	def checkSeat(self, previousmachine, deferredmachine):
+	def checkSeat(self, previousmachine, deferredmachine, user, pool):
+		#Give user machine
 		if len(previousmachine) == 0:
-			deferredmachine.addCallback(self.writeMachine)
+			deferredmachine.addCallback(self.writeMachine, user, pool, False)
 		else:
-			logging.info("Restored machine {0} to user at {1}".format(previousmachine[0][0], self.clientAddr))
-			self.transport.write(previousmachine[0][0])
-			self.transport.loseConnection()
+			logging.info("Restoring machine {0} to user at {1}".format(previousmachine[0][0], self.clientAddr))
+			self.writeMachine(previousmachine, user, pool, True)
 
-	def writeMachine(self, machines):
+	def writeMachine(self, machines, user, pool, restored):
 		stringmachine = random.choice(machines)[0]
-		logging.info("Gave machine {0} to user at {1}".format(stringmachine, self.clientAddr))
+		logging.info("Gave machine {0} in pool {1} to {2}".format(stringmachine, pool, user))
 		self.transport.write(stringmachine)
 		self.transport.loseConnection()
-	
+		if not restored:
+			#write to database to reserve machine
+			try:
+				self.reserveMachine(user, pool, stringmachine)
+			except:
+				logging.error("Unable to write to database")
+
+	def reserveMachine(self, user, pool, machine):
+		opstring = "INSERT INTO current VALUES ('{0}', '{1}', '{2}', False, CURRENT_TIMESTAMP)".format(user, pool, machine)
+		logging.debug("Reserved {0} in pool {1} for {2}".format(machine, pool, user))
+		return dbpool.runOperation(opstring)
+
 	def writePools(self, listpools):
 		logging.debug("Sending {0} to {1}".format(listpools, self.clientAddr))
 		for item in listpools:
@@ -136,10 +147,10 @@ class HandleClient(LineOnlyReceiver):
 				regexstring += group
 				regexstring += ".*)|"
 			regexstring = regexstring[0:-1]
-			querystring = "SELECT machines.machine FROM machines INNER JOIN pools ON pools.name = machines.name WHERE ((machines.machine NOT IN (SELECT machine FROM current)) AND (pools.name = '{0}') AND (groups IS NULL OR groups REGEXP '({1})'))".format(requestedpool,regexstring)
+			querystring = "SELECT machines.machine FROM machines INNER JOIN pools ON pools.name = machines.name WHERE ((machines.machine NOT IN (SELECT machine FROM current)) AND (active = True) AND (pools.name = '{0}') AND (groups IS NULL OR groups REGEXP '({1})'))".format(requestedpool,regexstring)
 			r = dbpool.runQuery(querystring)
 		else:
-			querystring = "SELECT machines.machine FROM machines INNER JOIN pools ON pools.name = machines.name WHERE ((machines.machine NOT IN (SELECT machine FROM current)) AND (pools.name = '{0}') AND (groups IS NULL))".format(requestedpool)
+			querystring = "SELECT machines.machine FROM machines INNER JOIN pools ON pools.name = machines.name WHERE ((machines.machine NOT IN (SELECT machine FROM current)) AND (active = True) AND (pools.name = '{0}') AND (groups IS NULL))".format(requestedpool)
 			r = dbpool.runQuery(querystring)
 		return r
 	
