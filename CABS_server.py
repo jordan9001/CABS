@@ -1,6 +1,6 @@
 #!/usr/bin/python
 from twisted.internet.protocol import Factory
-from twisted.internet import ssl, reactor, endpoints, defer
+from twisted.internet import ssl, reactor, endpoints, defer, task
 from twisted.protocols.basic import LineOnlyReceiver
 from twisted.enterprise import adbapi
 
@@ -16,25 +16,83 @@ dbpool = adbapi.ConnectionPool
 random.seed()
 
 
+class HandleAgent(LineOnlyReceiver):
+	def __init__(self, factory):
+		self.factory = factory
+	
+	def connectionMade(self):
+		self.agentAddr = self.transport.getPeer()
+		logging.debug('Connection made with {0}'.format(self.agentAddr))
+		self.factory.numConnections = self.factory.numConnections + 1	
+		logging.debug('There are {0} Agent connections'.format(self.factory.numConnections))
+
+	def connectionLost(self, reason):
+		logging.debug('Connection lost with {0} due to {1}'.format(self.agentAddr,reason))
+		self.factory.numConnections = self.factory.numConnections - 1		
+		logging.debug('There are {0} Agent connections'.format(self.factory.numConnections))
+
+	def lineLengthExceeded(self, line):
+		logging.error('Agent at {0} exceeded the Line Length'.format(self.agentAddr))
+		self.transport.loseConnection()
+
+	def lineReceived(self, line):
+		#types of reports = status report (sr) or login report (lr) or logoff report (fr)
+		print "Received " + line #remove this line
+		report = line.split(':')
+		logging.debug('There are {0} users on {1}'.format(len(report)-2, report[1]))
+		if report[0] == 'sr':
+			#Mark the machine as active, and update timestamp
+			querystring = "UPDATE machines SET active = True WHERE machine = %s"
+			r1 = dbpool.runQuery(querystring, (report[1],))
+			#confirm any users that reserved the machine if they are there, or unconfirm them if they are not
+			#For now we don't support assigning multiple users per machine, so only one should be on at a time
+			#but, if we do have multiple, let it be so
+			#Try to write an entry under the first listed users name, if duplicate machine update the old entry to confirmed
+			users = ''
+			if len(report) > 2:
+				for item in range(2, len(report)):
+					users += report[item] + ', '
+				users = users[0:-1]
+				logging.debug("Machine {0} reports user {1}".format(report[1],users))
+				querystring = "INSERT INTO current VALUES (%s, NULL, %s, True, NOW()) ON DUPLICATE KEY UPDATE confirmed = True"
+				r2 = dbpool.runQuery(querystring,(report[2],report[1]))
+			else:
+				querystring = "DELETE FROM current WHERE machine = %s"
+				r2 = dbpool.runQuery(querystring, (report[1],))
+
+
+class HandleAgentFactory(Factory):
+	
+	def __init__(self):
+		self.numConnections = 0
+	
+	def buildProtocol(self, addr):
+		return HandleAgent(self)
+
+
 class HandleClient(LineOnlyReceiver):
+	def __init__(self, factory):
+		self.factory = factory
 	
 	def connectionMade(self):
 		self.clientAddr = self.transport.getPeer()
 		logging.debug('Connection made with {0}'.format(self.clientAddr))
 		self.factory.numConnections = self.factory.numConnections + 1
-		logging.debug('There are {0} connections'.format(self.factory.numConnections))
+		logging.debug('There are {0} Client connections'.format(self.factory.numConnections))
 	
 	def connectionLost(self, reason):
 		logging.debug('Connection lost with {0} due to {1}'.format(self.clientAddr,reason))
 		self.factory.numConnections = self.factory.numConnections - 1		
-		logging.debug('There are {0} connections'.format(self.factory.numConnections))
+		logging.debug('There are {0} Client connections'.format(self.factory.numConnections))
 
 	def lineLengthExceeded(self, line):
 		logging.error('Client at {0} exceeded the Line Length'.format(self.clientAddr))
-	
+		self.transport.loseConnection()
+
 	def lineReceived(self, line):
-		#warning, this line will write out passwords in the log
-		logging.debug('{0} sent : {1}'.format(self.clientAddr, line))
+		#warning, this logging line will write out passwords in the log
+		#logging.debug('{0} sent : {1}'.format(self.clientAddr, line))
+		
 		#We can receieve 2 types of lines from a client, pool request (pr), machine request(mr)
 		request = line.split(':')
 		if request[0] == 'pr':
@@ -66,14 +124,18 @@ class HandleClient(LineOnlyReceiver):
 			self.writeMachine(previousmachine, user, pool, True)
 
 	def writeMachine(self, machines, user, pool, restored):
-		stringmachine = random.choice(machines)[0]	
-		if not restored:
-			#write to database to reserve machine
-			self.reserveMachine(user, pool, stringmachine).addBoth(self.verifyReserve, user, pool, stringmachine)
-		else:
-			logging.info("Restored machine {0} in pool {1} to {2}".format(stringmachine, pool, user))
-			self.transport.write(stringmachine)
+		if len(machines) == 0:
+			self.transport.write("Err:No Availible Machines")
 			self.transport.loseConnection()
+		else:
+			stringmachine = random.choice(machines)[0]	
+			if not restored:
+				#write to database to reserve machine
+				self.reserveMachine(user, pool, stringmachine).addBoth(self.verifyReserve, user, pool, stringmachine)
+			else:
+				logging.info("Restored machine {0} in pool {1} to {2}".format(stringmachine, pool, user))
+				self.transport.write(stringmachine)
+				self.transport.loseConnection()
 
 	def verifyReserve(self, error, user, pool, machine):
 		#if we get an error, then we had a collision, so give them another machine
@@ -87,9 +149,9 @@ class HandleClient(LineOnlyReceiver):
 			self.transport.loseConnection()
 
 	def reserveMachine(self, user, pool, machine):
-		opstring = "INSERT INTO current VALUES ('{0}', '{1}', '{2}', False, CURRENT_TIMESTAMP)".format(user, pool, machine)
+		opstring = "INSERT INTO current VALUES (%s, %s, %s, False, CURRENT_TIMESTAMP)"
 		logging.debug("Reserving {0} in pool {1} for {2}".format(machine, pool, user))
-		return dbpool.runQuery(opstring)
+		return dbpool.runQuery(opstring, (user, pool, machine))
 
 	def writePools(self, listpools):
 		logging.debug("Sending {0} to {1}".format(listpools, self.clientAddr))
@@ -143,8 +205,8 @@ class HandleClient(LineOnlyReceiver):
 			return (self.getPreviousSession(user,requestedpool), self.getMachine(groups, auth, requestedpool))
 	
 	def getPreviousSession(self, user, requestedpool):
-		querystring = "SELECT machine FROM current WHERE (user = '{0}' AND name = '{1}')".format(user,requestedpool)
-		return dbpool.runQuery(querystring)
+		querystring = "SELECT machine FROM current WHERE (user = %s AND name = %s)"
+		return dbpool.runQuery(querystring, (user, requestedpool))
 	
 	def getMachine(self, groups, auth, requestedpool):
 		r = defer.Deferred
@@ -155,11 +217,11 @@ class HandleClient(LineOnlyReceiver):
 				regexstring += group
 				regexstring += ".*)|"
 			regexstring = regexstring[0:-1]
-			querystring = "SELECT machines.machine FROM machines INNER JOIN pools ON pools.name = machines.name WHERE ((machines.machine NOT IN (SELECT machine FROM current)) AND (active = True) AND (pools.name = '{0}') AND (groups IS NULL OR groups REGEXP '({1})'))".format(requestedpool,regexstring)
-			r = dbpool.runQuery(querystring)
+			querystring = "SELECT machines.machine FROM machines INNER JOIN pools ON pools.name = machines.name WHERE ((machines.machine NOT IN (SELECT machine FROM current)) AND (active = True) AND (pools.name = %s) AND (groups IS NULL OR groups REGEXP %s))"
+			r = dbpool.runQuery(querystring, (requestedpool, regexstring))
 		else:
-			querystring = "SELECT machines.machine FROM machines INNER JOIN pools ON pools.name = machines.name WHERE ((machines.machine NOT IN (SELECT machine FROM current)) AND (active = True) AND (pools.name = '{0}') AND (groups IS NULL))".format(requestedpool)
-			r = dbpool.runQuery(querystring)
+			querystring = "SELECT machines.machine FROM machines INNER JOIN pools ON pools.name = machines.name WHERE ((machines.machine NOT IN (SELECT machine FROM current)) AND (active = True) AND (pools.name = %s) AND (groups IS NULL))"
+			r = dbpool.runQuery(querystring, (requestedpool,))
 		return r
 	
 		
@@ -173,33 +235,46 @@ class HandleClient(LineOnlyReceiver):
 				regexstring += group
 				regexstring += ".*)|"
 			regexstring = regexstring[0:-1]
-			r = dbpool.runQuery("SELECT name, description FROM pools WHERE (groups IS NULL OR groups REGEXP '({0})')".format(regexstring))
+			r = dbpool.runQuery("SELECT name, description FROM pools WHERE (groups IS NULL OR groups REGEXP %s)",(regexstring,))
 		else:
 			r = dbpool.runQuery("SELECT name, description FROM pools WHERE groups IS NULL")
 		return r	
 
 class HandleClientFactory(Factory):
 	
-	#Here we specify the protocol to use, which will also be passed this factory as an attribute
-	protocol = HandleClient
-	
 	def __init__(self):
 		self.numConnections = 0
 	
+	def buildProtocol(self, addr):
+		return HandleClient(self)
 
+def checkMachines():
+	logging.debug("Checking Machines")
+	#check for inactive machines
+	querystring = "UPDATE machines SET active = False  WHERE last_heartbeat < DATE_SUB(NOW(), INTERVAL %s SECOND)"
+	r1 = dbpool.runQuery(querystring, (settings.get("Timeout_Time"),))
+	
+	#check for reserved machines without confirmation
+	querystring = "DELETE FROM current WHERE (confirmed = False AND connecttime < DATE_SUB(NOW(), INTERVAL %s SECOND))"
+	r2 = dbpool.runQuery(querystring, (settings.get("Reserve_Time"),))
 
 def readConfigFile():
 	#open the .conf file and return the variables as a dictionary
 	global settings
 	with open('CABS_server.conf', 'r') as f:
 		for line in f:
-			line = line.rstrip()
+			line = line.strip()
 			if (not line.startswith('#')) and line:
 				try:
 					(key,val) = line.split(':\t',1)
 				except:
-					key = line
-					val = ''
+					print "Warning : Check .conf syntax"
+					try:
+						(key,val) = line.split(None,1)
+						key = key[:-1]
+					except:
+						key = line
+						val = ''
 				settings[key] = val
 		f.close()
 	
@@ -220,8 +295,10 @@ def readConfigFile():
 		settings["Database_Pass"] = "BACS"
 	if not settings.get("Database_Name"):
 		settings["Database_Name"] = "test"
-	if not settings.get("Timeout_Period"):
-		settings["Timeout_Period"] = 360
+	if not settings.get("Reserve_Time"):
+		settings["Reserve_Time"] = 360
+	if not settings.get("Timeout_Time"):
+		settings["Timeout_Time"] = 540
 	if not settings.get("Log_File"):
 		settings["Log_File"] = None
 	if not settings.get("Log_Level"):
@@ -279,12 +356,11 @@ def main():
 		logging.basicConfig(format='%(asctime)s %(levelname)s:%(message)s', level=loglevel)
 	else:
 		logging.basicConfig(format='%(asctime)s %(levelname)s:%(message)s', filename=settings.get("Log_File"), level=loglevel)
-	
 	logging.debug("Server Settings:")
 	for key in settings:
 		logging.debug("{0} = {1}".format(key, settings.get(key)))
 
-
+	#Create Listening Servers
 	if (settings.get("SSL_Priv_Key") is None) or (settings.get("SSL_Priv_Key") == 'None') or (settings.get("SSL_Cert") is None) or (settings.get("SSL_Cert") == 'None'):
 		serverstring = "tcp:" + str(settings.get("Client_Port"))	
 		endpoints.serverFromString(reactor, serverstring).listen(HandleClientFactory())
@@ -292,7 +368,24 @@ def main():
 		serverstring = "ssl:" + str(settings.get("Client_Port")) + ":privateKey=" + settings.get("SSL_Priv_Key") + ":certKey=" + settings.get("SSL_Cert")
 		endpoints.serverFromString(reactor, serverstring).listen(HandleClientFactory())
 
-	logging.info("Starting Server {0}".format(serverstring))
+	logging.info("Starting Client Server {0}".format(serverstring))
+	
+	if (settings.get("Use_Agents") == 'True'):
+		#Use Agents, so start the listening server
+		if (settings.get("SSL_Priv_Key") is None) or (settings.get("SSL_Priv_Key") == 'None') or (settings.get("SSL_Cert") is None) or (settings.get("SSL_Cert") == 'None'):
+			agentserverstring = "tcp:" + str(settings.get("Agent_Port"))	
+			endpoints.serverFromString(reactor, agentserverstring).listen(HandleAgentFactory())
+		else:
+			agentserverstring = "ssl:" + str(settings.get("Agent_Port")) + ":privateKey=" + settings.get("SSL_Priv_Key") + ":certKey=" + settings.get("SSL_Cert")
+			endpoints.serverFromString(reactor, agentserverstring).listen(HandleAgentFactory())
+	
+		logging.info("Starting Agent Server {0}".format(agentserverstring))
+		#Check Machine status every 1/2 Reserve_Time
+		checkup = task.LoopingCall(checkMachines)
+		checkup.start( int(settings.get("Reserve_Time"))/2 )
+
+	
+	#Start Everything
 	reactor.run()
 
 

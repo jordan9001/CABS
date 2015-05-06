@@ -10,15 +10,20 @@ def readConfigFile():
         global settings
         with open('CABS_client.conf', 'r') as f:
                 for line in f:
-                        line = line.rstrip()
+                        line = line.strip()
                         if (not line.startswith('#')) and line:
-                                try:
+                		try:
                                         (key,val) = line.split(':\t',1)
                                 except:
-                                        key = line
-                                        val = ''
-                                settings[key] = val 
-                f.close()
+                                        print "Warning : Check .conf syntax"
+                                        try:
+                                                (key,val) = line.split(None,1)
+                                                key = key[:-1]
+                                        except:
+                                                key = line
+                                                val = ''
+                                settings[key] = val
+		f.close()
         #insert default settings for all not specified
         if not settings.get("Host_Addr"):
                 settings["Host_Addr"] = 'localhost'
