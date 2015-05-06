@@ -47,7 +47,7 @@ class HandleClient(LineOnlyReceiver):
 				logging.debug("Could not get Pools")
 				self.transport.loseConnection()
 		elif request[0] == 'mr':
-			logging.info('User {0} requested a machine from {1}'.format(request[1],self.clientAddr))
+			logging.info('User {0} requested a machine in pool {1} from {2}'.format(request[1],request[3],self.clientAddr))
 			#check authentication
 			#get machine for the user
 			try:
@@ -63,25 +63,33 @@ class HandleClient(LineOnlyReceiver):
 		if len(previousmachine) == 0:
 			deferredmachine.addCallback(self.writeMachine, user, pool, False)
 		else:
-			logging.info("Restoring machine {0} to user at {1}".format(previousmachine[0][0], self.clientAddr))
 			self.writeMachine(previousmachine, user, pool, True)
 
 	def writeMachine(self, machines, user, pool, restored):
-		stringmachine = random.choice(machines)[0]
-		logging.info("Gave machine {0} in pool {1} to {2}".format(stringmachine, pool, user))
-		self.transport.write(stringmachine)
-		self.transport.loseConnection()
+		stringmachine = random.choice(machines)[0]	
 		if not restored:
 			#write to database to reserve machine
-			try:
-				self.reserveMachine(user, pool, stringmachine)
-			except:
-				logging.error("Unable to write to database")
+			self.reserveMachine(user, pool, stringmachine).addBoth(self.verifyReserve, user, pool, stringmachine)
+		else:
+			logging.info("Restored machine {0} in pool {1} to {2}".format(stringmachine, pool, user))
+			self.transport.write(stringmachine)
+			self.transport.loseConnection()
+
+	def verifyReserve(self, error, user, pool, machine):
+		#if we get an error, then we had a collision, so give them another machine
+		if error:
+			#don't send anything, client will try again a few times
+			logging.warning("Tried to reserve machine {0} but was unable".format(machine))
+			self.transport.loseConnection()
+		else:
+			logging.info("Gave machine {0} in pool {1} to {2}".format(machine, pool, user))
+			self.transport.write(machine)
+			self.transport.loseConnection()
 
 	def reserveMachine(self, user, pool, machine):
 		opstring = "INSERT INTO current VALUES ('{0}', '{1}', '{2}', False, CURRENT_TIMESTAMP)".format(user, pool, machine)
-		logging.debug("Reserved {0} in pool {1} for {2}".format(machine, pool, user))
-		return dbpool.runOperation(opstring)
+		logging.debug("Reserving {0} in pool {1} for {2}".format(machine, pool, user))
+		return dbpool.runQuery(opstring)
 
 	def writePools(self, listpools):
 		logging.debug("Sending {0} to {1}".format(listpools, self.clientAddr))
@@ -181,18 +189,17 @@ class HandleClientFactory(Factory):
 
 
 def readConfigFile():
-	#open the .conf file and return the variables as an array
+	#open the .conf file and return the variables as a dictionary
 	global settings
 	with open('CABS_server.conf', 'r') as f:
 		for line in f:
 			line = line.rstrip()
 			if (not line.startswith('#')) and line:
 				try:
-					(key,val) = line.split()
+					(key,val) = line.split(':\t',1)
 				except:
 					key = line
 					val = ''
-				key = key.replace(':','')
 				settings[key] = val
 		f.close()
 	
@@ -201,6 +208,8 @@ def readConfigFile():
 		settings["Client_Port"] = 18181
 	if not settings.get("Agent_Port"):
 		settings["Agent_Port"] = 18182
+	if not settings.get("Use_Agents"):
+		settings["User_Agents"] = 'True'
 	if not settings.get("Database_Addr"):
 		settings["Database_Addr"] = "127.0.0.1"
 	if not settings.get("Database_Port"):
@@ -211,6 +220,8 @@ def readConfigFile():
 		settings["Database_Pass"] = "BACS"
 	if not settings.get("Database_Name"):
 		settings["Database_Name"] = "test"
+	if not settings.get("Timeout_Period"):
+		settings["Timeout_Period"] = 360
 	if not settings.get("Log_File"):
 		settings["Log_File"] = None
 	if not settings.get("Log_Level"):

@@ -3,24 +3,45 @@
 
 import socket, ssl
 
+settings = {}
+
 def readConfigFile():
-	#testing
-	settings = {}
-	settings["Host_Addr"] = "localhost"
-	settings["Host_Port"] = "18181"
-	return settings
+        #open the .conf file and return the variables as a dictionary
+        global settings
+        with open('CABS_client.conf', 'r') as f:
+                for line in f:
+                        line = line.rstrip()
+                        if (not line.startswith('#')) and line:
+                                try:
+                                        (key,val) = line.split(':\t',1)
+                                except:
+                                        key = line
+                                        val = ''
+                                settings[key] = val 
+                f.close()
+        #insert default settings for all not specified
+        if not settings.get("Host_Addr"):
+                settings["Host_Addr"] = 'localhost'
+        if not settings.get("Client_Port"):
+                settings["Client_Port"] = 18181
+        if not settings.get("SSL_Cert"):
+                settings["SSL_Cert"] = None
 
 def main():
 	#read config file
-	settings = {}
-	settings = readConfigFile()
+	readConfigFile()
 	
 	try:
+		print settings.get("SSL_Cert")
 		s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-		s.connect((settings.get("Host_Addr"), int(settings.get("Host_Port"))))
-		s_wrapped = ssl.wrap_socket(s, ca_certs="/home/sherpa/CABS/cacert.pem", ssl_version=ssl.PROTOCOL_SSLv23)
+		s.connect((settings.get("Host_Addr"), int(settings.get("Client_Port"))))
 		content = 'pr:cmguest47:rgst3st4u?\r\n'
 		#content = 'pr:notauser:fakepass\r\n'
+		if (settings.get("SSL_Cert") is None) or (settings.get("SSL_Cert") == 'None'):
+			s_wrapped = s
+		else:
+			s_wrapped = ssl.wrap_socket(s, ca_certs=settings.get("SSL_Cert"), ssl_version=ssl.PROTOCOL_SSLv23)
+		
 		s_wrapped.sendall(content)
 		pools = ""
 		while True:
@@ -31,10 +52,14 @@ def main():
 		print pools
 		
 		ss = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-		ss.connect((settings.get("Host_Addr"), int(settings.get("Host_Port"))))
-		ss_wrapped = ssl.wrap_socket(ss, ca_certs="/home/sherpa/CABS/cacert.pem", ssl_version=ssl.PROTOCOL_SSLv23)
+		ss.connect((settings.get("Host_Addr"), int(settings.get("Client_Port"))))
 		content = 'mr:cmguest47:rgst3st4u?:Main\r\n'
-		#content = 'mr:notauser:fakepass:Main\r\n'
+		#content = 'mr:notauser:fakepass:Main\r\n'	
+		if (settings.get("SSL_Cert") is None) or (settings.get("SSL_Cert") == 'None'):
+			ss_wrapped = ss
+		else:
+			ss_wrapped = ssl.wrap_socket(ss, ca_certs=settings.get("SSL_Cert"), ssl_version=ssl.PROTOCOL_SSLv23)
+		
 		ss_wrapped.sendall(content)
 		machine = ""
 		while True:
