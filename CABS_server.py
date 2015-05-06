@@ -9,10 +9,15 @@ import ldap
 import logging
 import random
 
+from time import sleep
+
 #global settings dictionary
 settings = {}
 #global database pool
 dbpool = adbapi.ConnectionPool
+#global blacklist set
+blacklist = set()
+
 random.seed()
 
 
@@ -67,6 +72,10 @@ class HandleAgentFactory(Factory):
 		self.numConnections = 0
 	
 	def buildProtocol(self, addr):
+		#Blacklist check here
+		if addr.host in blacklist:
+			logging.debug("Blacklisted address {0} tried to connect as an Agent".format(addr.host))
+			return None
 		return HandleAgent(self)
 
 
@@ -75,6 +84,7 @@ class HandleClient(LineOnlyReceiver):
 		self.factory = factory
 	
 	def connectionMade(self):
+		#if auto then add to blacklist
 		self.clientAddr = self.transport.getPeer()
 		logging.debug('Connection made with {0}'.format(self.clientAddr))
 		self.factory.numConnections = self.factory.numConnections + 1
@@ -125,6 +135,7 @@ class HandleClient(LineOnlyReceiver):
 
 	def writeMachine(self, machines, user, pool, restored):
 		if len(machines) == 0:
+			logging.info("There were no availible machines in {0} for user {1}".format(pool, user))
 			self.transport.write("Err:No Availible Machines")
 			self.transport.loseConnection()
 		else:
@@ -246,6 +257,18 @@ class HandleClientFactory(Factory):
 		self.numConnections = 0
 	
 	def buildProtocol(self, addr):
+		#Blacklist check here
+		if addr.host in blacklist:
+			logging.debug("Blacklisted address {0} tried to connect".format(addr.host))
+			return None
+		
+		#limit connection number here
+		#if you return none, twisted closes the connection
+		#You will also get a lot of errors, because it tries to do stuff on the non object.
+		if (settings.get("Max_Clients") is not None and settings.get("Max_Clients") != 'None') and (int(self.numConnections) >= int(settings.get("Max_Clients"))):
+			logging.warning("Reached maximum Client connections")
+			return None
+			#The client will wait a given time, and try again a few times
 		return HandleClient(self)
 
 def checkMachines():
@@ -257,6 +280,21 @@ def checkMachines():
 	#check for reserved machines without confirmation
 	querystring = "DELETE FROM current WHERE (confirmed = False AND connecttime < DATE_SUB(NOW(), INTERVAL %s SECOND))"
 	r2 = dbpool.runQuery(querystring, (settings.get("Reserve_Time"),))
+
+def cacheBlacklist():
+	logging.debug("Cacheing the Blacklist")
+	querystring = "SELECT address FROM blacklist WHERE banned = True"
+	r = dbpool.runQuery(querystring)
+	r.addBoth(setBlacklist)
+
+def setBlacklist(data):
+	global blacklist
+	blacklist = set()
+	logging.debug("Blacklist:")
+	for item in data:
+		blacklist.add(item[0])
+		logging.debug(item[0])
+		
 
 def readConfigFile():
 	#open the .conf file and return the variables as a dictionary
@@ -274,11 +312,14 @@ def readConfigFile():
 						key = key[:-1]
 					except:
 						key = line
+						key = key[:-1]
 						val = ''
 				settings[key] = val
 		f.close()
 	
 	#insert default settings for all not specified
+	if not settings.get("Max_Clients"):
+		settings["Max_Clients"] = 62
 	if not settings.get("Client_Port"):
 		settings["Client_Port"] = 18181
 	if not settings.get("Agent_Port"):
@@ -299,6 +340,12 @@ def readConfigFile():
 		settings["Reserve_Time"] = 360
 	if not settings.get("Timeout_Time"):
 		settings["Timeout_Time"] = 540
+	if not settings.get("Use_Blacklist"):
+		settings["Use_Blacklist"] = False
+	if not settings.get("Auto_Blacklist"):
+		settings["Auto_Blacklist"] = False
+	if not settings.get("Auto_Max"):
+		settings["Auto_Max"] = 300
 	if not settings.get("Log_File"):
 		settings["Log_File"] = None
 	if not settings.get("Log_Level"):
@@ -360,7 +407,7 @@ def main():
 	for key in settings:
 		logging.debug("{0} = {1}".format(key, settings.get(key)))
 
-	#Create Listening Servers
+	#Create Client Listening Server
 	if (settings.get("SSL_Priv_Key") is None) or (settings.get("SSL_Priv_Key") == 'None') or (settings.get("SSL_Cert") is None) or (settings.get("SSL_Cert") == 'None'):
 		serverstring = "tcp:" + str(settings.get("Client_Port"))	
 		endpoints.serverFromString(reactor, serverstring).listen(HandleClientFactory())
@@ -370,6 +417,7 @@ def main():
 
 	logging.info("Starting Client Server {0}".format(serverstring))
 	
+	#Set up Agents listening
 	if (settings.get("Use_Agents") == 'True'):
 		#Use Agents, so start the listening server
 		if (settings.get("SSL_Priv_Key") is None) or (settings.get("SSL_Priv_Key") == 'None') or (settings.get("SSL_Cert") is None) or (settings.get("SSL_Cert") == 'None'):
@@ -384,7 +432,12 @@ def main():
 		checkup = task.LoopingCall(checkMachines)
 		checkup.start( int(settings.get("Reserve_Time"))/2 )
 
-	
+	#Start Blacklist cacheing
+	if settings.get("Use_Blacklist") or settings.get("Use_Blacklist") == 'True':
+		getblacklist = task.LoopingCall(cacheBlacklist)
+		#refresh blacklist every 15 minutes
+		getblacklist.start(900)
+
 	#Start Everything
 	reactor.run()
 
