@@ -1,0 +1,8 @@
+*.pem
+*.pyc
+*.sql
+*.sqlite
+*.log
+*.xcf
+
+test*
