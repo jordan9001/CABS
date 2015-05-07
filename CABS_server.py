@@ -433,7 +433,7 @@ def main():
 		checkup.start( int(settings.get("Reserve_Time"))/2 )
 
 	#Start Blacklist cacheing
-	if settings.get("Use_Blacklist") or settings.get("Use_Blacklist") == 'True':
+	if settings.get("Use_Blacklist") == 'True':
 		getblacklist = task.LoopingCall(cacheBlacklist)
 		#refresh blacklist every 15 minutes
 		getblacklist.start(900)
@@ -444,4 +444,5 @@ def main():
 
 if __name__ == "__main__":
 	main()
+
 
