@@ -57,7 +57,7 @@ class HandleAgent(LineOnlyReceiver):
 			if len(report) > 2:
 				for item in range(2, len(report)):
 					users += report[item] + ', '
-				users = users[0:-1]
+				users = users[0:-2]
 				logging.debug("Machine {0} reports user {1}".format(report[1],users))
 				querystring = "INSERT INTO current VALUES (%s, NULL, %s, True, NOW()) ON DUPLICATE KEY UPDATE confirmed = True, connecttime = Now(), user = %s"
 				r2 = dbpool.runQuery(querystring,(report[2],report[1],users))
