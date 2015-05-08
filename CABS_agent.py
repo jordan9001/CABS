@@ -11,7 +11,9 @@ settings = {}
 
 def heartbeat():
 	if sys.platform.startswith("linux"):
-		output = subprocess.check_output("w -h", shell=True)
+		p = subprocess.Popen(["w", "-h"], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+		output, err = p.communicate()
+		#output = subprocess.check_output("w -h", shell=True) #only works on python 2.7
 		lines = output.split('\n')
 		userlist = set()
 		for line in lines:
