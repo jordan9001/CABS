@@ -1,5 +1,5 @@
 #!/usr/bin/python
-from twisted.internet.protocol import Factory
+from twisted.internet.protocol import Factory, Protocol
 from twisted.internet import ssl, reactor, endpoints, defer, task
 from twisted.protocols.basic import LineOnlyReceiver
 from twisted.enterprise import adbapi
@@ -92,7 +92,7 @@ class HandleClient(LineOnlyReceiver):
 	
 	def connectionLost(self, reason):
 		logging.debug('Connection lost with {0} due to {1}'.format(self.clientAddr,reason))
-		self.factory.numConnections = self.factory.numConnections - 1		
+		self.factory.numConnections = self.factory.numConnections - 1
 		logging.debug('There are {0} Client connections'.format(self.factory.numConnections))
 
 	def lineLengthExceeded(self, line):
@@ -251,10 +251,20 @@ class HandleClient(LineOnlyReceiver):
 			r = dbpool.runQuery("SELECT name, description FROM pools WHERE groups IS NULL")
 		return r	
 
+#class PauseAndStoreTransport(Protocol):
+#	def makeConnection(self, transport):
+#		transport.pauseProducting()
+#		self.factory.addPausedTransport(self, transport)
+
+class DoNothing(Protocol):
+	def makeConnection(self, transport):
+		transport.loseConnection()
+
 class HandleClientFactory(Factory):
 	
 	def __init__(self):
 		self.numConnections = 0
+		self.transports = []
 	
 	def buildProtocol(self, addr):
 		#Blacklist check here
@@ -263,13 +273,28 @@ class HandleClientFactory(Factory):
 			return None
 		
 		#limit connection number here
-		#if you return none, twisted closes the connection
-		#You will also get a lot of errors, because it tries to do stuff on the non object.
 		if (settings.get("Max_Clients") is not None and settings.get("Max_Clients") != 'None') and (int(self.numConnections) >= int(settings.get("Max_Clients"))):
 			logging.warning("Reached maximum Client connections")
-			return None
-			#The client will wait a given time, and try again a few times
+			protocol = DoNothing()
+			protocol.factory = self
+			return protocol
 		return HandleClient(self)
+
+##This might not be needed in this case, I might implement it later if it helps speed.
+##For now, let's just let Clients try to reconnect a few times after a few seconds
+#	def addPausedTransport(originalProtocol, transport):
+#		self.transports.append((originalProtocol,transport))
+#	
+#	def oneConnectionDisconnected(self): 
+#		if (settings.get("Max_Clients") is not None and settings.get("Max_Clients") != 'None') and (int(self.numConnections) < int(settings.get("Max_Clients"))):
+#			originalProtocol, transport = self.transports.pop(0)
+#			newProtocol = self.buildProtocol(address)
+#
+#			originalProtocol.dataReceived = newProtocol.dataReceived
+#			originalProtocol.connectionLost = newProtocol.connectionLost
+#			
+#			newProtocol.makeConnection(transport)
+#			transport.resumeProducing()
 
 def checkMachines():
 	logging.debug("Checking Machines")
