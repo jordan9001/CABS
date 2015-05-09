@@ -1,0 +1,38 @@
+{% include "cabs_admin/header.html" %}
+
+<center>
+<div role="main">
+<form action="{% url 'cabs_admin:getSetting' %}" method="get">
+    <select name="setting" onchange="this.form.submit()">
+        <option value="Max_Clients">Maximum Clients</option>
+        <option value="Reserve_Time">Machine Reserve Time</option> 
+        <option value="Timeout_Time">Machine Timeout Time</option>
+        <option value="Use_Blacklist">Enable Blacklist</option>
+        <option value="Auto_Blacklist">Automatically Blacklist Attacks</option>
+        <option value="Auto_Max">Blacklist Connections per Minute</option>
+        <option value="Log_Level">History Verbosity</option>
+        <option value="Auth_Server">Authentication Server</option>
+        <option value="Auth_Prefix">Authentication Prefix String</option>
+        <option value="Auth_Postfix">Authentication Postfix String</option>
+        <option value="Auth_Usr_Attr">Authentication User Attribute</option>
+        <option value="Auth_Grp_Attr">Authentication Group Attribute</option>
+        <option value="RGS_Version">Minimum RGS Version</option>
+    </select>
+</form>
+{%if option_choosen %}
+    <form action="{% url 'cabs_admin:setSetting' %}" method="post">
+        <!--If you really need to set other variables from here, you can put the option's dictionary name here in this hidden input-->
+        <input type="hidden" name="setting" value="{{ option_choosen }}">
+        {% if option_choosen == 'Max_Clients' %}
+            something here
+        {% elif option_choosen == 'Reserve_Time' %}
+            something else
+        {% else %}
+            
+        {% endif %}
+        <input type="submit" value="Submit">
+    </form>
+{% endif %}
+
+</div>
+</center>

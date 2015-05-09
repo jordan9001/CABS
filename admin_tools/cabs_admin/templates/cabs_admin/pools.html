@@ -1,0 +1,19 @@
+{% include "cabs_admin/header.html" %}
+
+<center>
+<div role="main">
+<table class="table_list">
+    <tr><td> Pool </td><td> Description </td><td> Secondary </td><td> Groups </td></tr>
+    <tr></tr>
+{% for pool in pool_list %}
+    <tr>
+        <td> {{pool.name}} </td>
+        <td> {{pool.description}} </td>
+        <td> {{pool.secondary}} </td>
+        <td> {{pool.groups}} </td>
+    </tr>
+{% endfor %}
+</table>
+
+</div>
+</center>
