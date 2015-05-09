@@ -4,6 +4,13 @@
 <div id="top" role="banner"><div class="container">
 <a class="logo" href="{% url 'cabs_admin:index' %}">CABS Admin Console</a>
 <div id="menu">
+<ul role="navigation">
+    <li class="nav"><a href="{% url 'cabs_admin:machinesPage' %}">Machines</a></li>
+    <li class="nav"><a href="{% url 'cabs_admin:poolsPage' %}">Pools</a></li>
+    <li class="nav"><a href="{% url 'cabs_admin:index' %}">Settings</a></li>
+    <li class="nav"><a href="{% url 'cabs_admin:index' %}">Blacklist</a></li>
+    <li class="nav"><a href="{% url 'cabs_admin:index' %}">History</a></li>
+</ul>
 </div>
 
 </div></div>
@@ -13,3 +20,4 @@
     <h1> {{section_name}} </h1>
     </div></div>
 {% endif %}
+
