@@ -1,0 +1,15 @@
+{% load staticfiles %}
+<link rel="stylesheet" type="text/css" href="{% static 'cabs_admin/style.css' %}" />
+
+<div id="top" role="banner"><div class="container">
+<a class="logo" href="{% url 'cabs_admin:index' %}">CABS Admin Console</a>
+<div id="menu">
+</div>
+
+</div></div>
+
+{% if section_name %}
+    <div id="sub-banner"><div class="container">
+    <h1> {{section_name}} </h1>
+    </div></div>
+{% endif %}

@@ -1,0 +1,48 @@
+#top {
+    background-color: #000;
+    background-repeat: repeat;
+    position: relative;
+    overflow: hidden;
+    margin: 0px;
+    z-index: 0;
+    padding: 10px 0px 6px;
+}
+
+#sub-banner {
+    padding: 1px 10px;
+    background-color: #D5C618;
+    background-repeat: repeat;
+}
+
+.container {
+    margin: 0px auto;
+    max-width: 1400px;
+    padding: 0px 5%;
+}
+
+.logo {
+    color: white; 
+    text-decoration: none;
+    font-family: "Roboto",Corbel,Avenir,"Lucida Grande","Lucida Sans",sans-serif;
+    font-size: 3.3rem;
+    font-weight: 300;
+    margin: 0.35em 0px;
+    padding: 1px 0px 6px;
+}
+
+h1 {
+    color: #000;
+    letter-spacing: -1px;
+    font-weight: 300;
+    text-decoration: none;
+    font-family: "Roboto",Corbel,Avenir,"Lucida Grande","Lucida Sans",sans-serif;
+    font-size: 2.7rem;
+    margin: 0.35em 0px;
+    padding: 1px 0px 6px;
+}
+
+html, body {
+    font-size: 90%;
+    margin:0;
+    padding:0;
+}
