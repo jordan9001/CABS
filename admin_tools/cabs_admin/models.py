@@ -46,6 +46,7 @@ class Machines(models.Model):
     machine = models.CharField(primary_key=True, unique=True, max_length=32)
     active = models.BooleanField(default=False)
     last_heartbeat = models.DateTimeField()
+    deactivated = models.BooleanField(default=False)
     
     def __unicode__(self):
         return self.pk
@@ -60,6 +61,7 @@ class Pools(models.Model):
     description = models.CharField(max_length=1024, blank=True)
     secondary = models.CharField(max_length=1024, blank=True)
     groups = models.CharField(max_length=1024, blank=True)
+    deactivated = models.BooleanField(default=False)
 
     def __unicode__(self):
         return self.pk
@@ -68,9 +70,16 @@ class Pools(models.Model):
         managed = False
         db_table = 'pools'
 
+class Settings(models.Model):
+    setting = models.CharField(primary_key=True, unique=True, max_length=32)
+    value = models.CharField(max_length=64)
+
+    class Meta:
+        managed = False
+        db_table = 'settings'
 
 class Whitelist(models.Model):
-    address = models.CharField(primary_key=True, max_length=32, blank=True)
+    address = models.CharField(primary_key=True, unique=True, max_length=32)
 
     def __unicode__(self):
         return self.pk

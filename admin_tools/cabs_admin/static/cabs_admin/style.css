@@ -69,6 +69,34 @@
     font-weight: 700;
 }
 
+.main_choice {
+    font-size:1.2rem;
+}
+
+.button {
+    margin: 10px 1px;
+    background: #D5C618;
+    color: #000;
+    cursor: pointer;
+    border-radius: 3px;
+    border: 0px;
+    text-align: center;
+    padding: 0.6rem 1.2rem;
+    font-size: 1.0rem;
+    font-weight: 700;
+    text-transform: uppercase;
+}
+
+.button:active, .button:focus, .button:hover {
+    opacity: 0.90;
+}
+
+.rm {
+    float: right;
+    margin: 1px 1px 1px 3px;
+    padding: 0.1rem;
+}
+
 ul[role="navigation"] {
     list-style: none;
     position: relative;
@@ -88,7 +116,34 @@ h1 {
     padding: 1px 0px 6px;
 }
 
+h2 {
+    font-size: 1.5rem;
+    font-weight:700;
+}
+
+p {
+    font-size: 1.0rem;
+    line-height: 1.5rem;
+}
+
+select {
+    border: 0;
+    background-color: #EBEBEB;
+    border-radius: 0;
+    padding: 5px;
+    font-size: 1.0rem;
+}
+
+input {
+    background-color: #EBEBEB;
+    border: 0;
+    border-radius: 0;
+    padding: 5px;
+    font-size: 1.0rem;
+}
+
 html, body {
+    font-family: "Roboto",Corbel,Avenir,"Lucida Grande","Lucida Sans",sans-serif;
     font-size: 90%;
     margin:0;
     padding:0;

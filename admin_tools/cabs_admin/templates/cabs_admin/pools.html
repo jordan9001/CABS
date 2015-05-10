@@ -7,13 +7,34 @@
     <tr></tr>
 {% for pool in pool_list %}
     <tr>
+        <form action="{% url 'cabs_admin:togglePools' %}" method="post" name="toggleMachine">
+        {% csrf_token %}
+        <input type="hidden" name="pool" value="{{pool.name}}">
         <td> {{pool.name}} </td>
         <td> {{pool.description}} </td>
         <td> {{pool.secondary}} </td>
-        <td> {{pool.groups}} </td>
+        <td> {{pool.groups}}
+        <input class="button rm" type="submit" name="rm" value="X">
+        <input class="button rm" type="submit" name="toggle" value="{% if pool.deactivated %}Disabled" style="background-color: black; color: white{% else %}Enabled{% endif %}">
+        </td>
+        </form>
     </tr>
 {% endfor %}
 </table>
-
+<hr/>
+<div class="container">
+    <h2>Add/Change a Pool</h2>
+    <form action="{% url 'cabs_admin:setPools' %}" method="post">
+    {% csrf_token %}
+    <label>Pool Name:</label>
+    <input type="text" name="name" title="Pool Name" pattern="^\w+$">
+    <label>Pool Description:</label>
+    <input type="text" name="description" title="Pool Description">
+    <label>Secondary Pools:</label>
+    <input type="text" name="secondary" title="Comma seaprated list of Secondary Pools" pattern="^(\w+(,\w+)*)|()$">
+    <label>Authorized Groups:</label>
+    <input type="text" name="groups" title="Comma seaprated list of Groups" pattern="^(\w+(,\w+)*)|()$">
+    <input class="button" type="submit" value="Submit">
+</div>
 </div>
 </center>
