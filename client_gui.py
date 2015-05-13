@@ -1,6 +1,7 @@
 #!/usr/bin/python
 import wx
 import socket, ssl
+from ast import literal_eval
 
 settings = {}
 
@@ -36,6 +37,51 @@ def readConfigFile():
 	if not settings.get("RGS_Location"):
 		settings["RGS_Location"] = None
 
+def getPools(user,password):
+	s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+	s.connect((settings.get("Host_Addr"), int(settings.get("Client_Port"))))
+ 	content = "pr:{0}:{1}\r\n".format(user, password)
+	#content = 'pr:cmguest47:rgst3st4u?\r\n'
+	#content = 'pr:notauser:fakepass\r\n'
+	if (settings.get("SSL_Cert") is None) or (settings.get("SSL_Cert") == 'None'):
+		s_wrapped = s
+	else:
+		s_wrapped = ssl.wrap_socket(s, ca_certs=settings.get("SSL_Cert"), ssl_version=ssl.PROTOCOL_SSLv23)
+	
+	s_wrapped.sendall(content)
+	pools = ""
+	while True:
+		chunk = s_wrapped.recv(1024)
+		pools += chunk
+		if chunk == '':
+			break;
+	poolsliterals = pools.split('\n')
+	poolset = set()
+	for literal in poolsliterals:
+		poolset.add(literal_eval(literal))
+	return poolset
+
+def getMachine(user, password, pool):
+	print settings.get("SSL_Cert")
+	s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+	s.connect((settings.get("Host_Addr"), int(settings.get("Client_Port"))))
+ 	content = "pr:{0}:{1}:{2}\r\n".format(user, password, pool)
+	#content = 'pr:cmguest47:rgst3st4u?:Main\r\n'
+	#content = 'pr:notauser:fakepass:Main\r\n'
+	if (settings.get("SSL_Cert") is None) or (settings.get("SSL_Cert") == 'None'):
+		s_wrapped = s
+	else:
+		s_wrapped = ssl.wrap_socket(s, ca_certs=settings.get("SSL_Cert"), ssl_version=ssl.PROTOCOL_SSLv23)
+	
+	s_wrapped.sendall(content)
+	machine = ""
+	while True:
+		chunk = s_wrapped.recv(1024)
+		machine += chunk
+		if chunk == '':
+			break;
+	return machine
+
 class MainPage(wx.Panel):
 	def __init__(self, parent):
 		wx.Panel.__init__(self, parent)
@@ -61,14 +107,41 @@ class MainPage(wx.Panel):
 
 		self.SetSizer(self.sizer)
 		self.SetAutoLayout(1)
-
+#Settings start on RGS 7.1 manual page 92
 class DisplayTab(wx.Panel):
 	def __init__(self, parent):
 		wx.Panel.__init__(self, parent)
+		self.Resolutions = [(800, 600), (1024, 768), (1152, 864), (1280, 768), (1280, 800), (1280, 960), (1280, 1024), (1360, 768), (1600, 1200), (1680, 1050), (1920, 1080), (1920, 1200), (1920, 1440), (2048, 1536), (2560, 1600)]
+		self.getDisplayValues()
 		self.InitUI()
 
 	def InitUI(self):
-		self.label = wx.StaticText(self, wx.ID_ANY, "Display Options")
+		self.sizer = wx.FlexGridSizer(1, 3, 3, 3) #rows, cols, vgap, hgap
+		self.rez_label = wx.StaticText(self, wx.ID_ANY, "Screen Resolution:")
+		self.rez_slider = wx.Slider(self, wx.ID_ANY, value=len(self.Resolutions) , minValue=0, maxValue=len(self.Resolutions), size=(200,-1), style=wx.SL_HORIZONTAL)
+		self.rez_choice = wx.TextCtrl(self, wx.ID_ANY, str(self.Resolutions[len(self.Resolutions)-1][0])+"x"+str(self.Resolutions[len(self.Resolutions)-1][1]), style=wx.TE_READONLY)
+		self.sizer.Add(self.rez_label, 0)
+		self.sizer.Add(self.rez_slider, 1, wx.EXPAND)
+		self.sizer.Add(self.rez_choice, 0)
+		#self.sizer.AddGrowableCol(1,1)
+		self.SetSizer(self.sizer)
+		self.SetAutoLayout(1)
+		
+
+	def getDisplayValues(self):
+		disp = wx.Display(0)
+		self.dispCount = disp.GetCount()
+		self.maxRez =  disp.GetClientArea()#max rez rectangle
+		self.maxWidth = self.maxRez[2] - self.maxRez[0]
+		self.maxHeight = self.maxRez[3] - self.maxRez[1]
+		Rezolutions = []
+		#now remove rezolutions above that
+		for rez in self.Resolutions:
+			if (rez[0] < self.maxWidth) and (rez[1] < self.maxHeight):
+				Rezolutions.append(rez)
+		self.Resolutions = Rezolutions
+		print self.maxWidth, self.maxHeight
+		print self.Resolutions
 
 class AudioTab(wx.Panel):
 	def __init__(self, parent):
@@ -110,37 +183,6 @@ class OtherTab(wx.Panel):
 	def InitUI(self):
 		self.label = wx.StaticText(self, wx.ID_ANY, "Other Options")
 
-
-class SettingsRGS(wx.Panel):
-	def __init__(self, parent):
-		wx.Panel.__init__(self, parent)
-		self.InitUI()
-	
-	def InitUI(self):
-		p = wx.Panel(self)
-		notebook = wx.Notebook(p)
-		tab1 = DisplayTab(notebook)
-		tab2 = AudioTab(notebook)
-		tab3 = KeyboardTab(notebook)
-		tab4 = DevicesTab(notebook)
-		tab5 = TimersTab(notebook)
-		tab6 = OtherTab(notebook)
-		notebook.AddPage(tab1, "Display")
-		notebook.AddPage(tab2, "Audio")
-		notebook.AddPage(tab3, "Keyboard")
-		notebook.AddPage(tab4, "Devices")
-		notebook.AddPage(tab5, "Timers")
-		notebook.AddPage(tab6, "Other")
-			
-		user_label = wx.StaticText(self, wx.ID_ANY, "Username : ", size=(80,-1))
-		pass_label = wx.StaticText(self, wx.ID_ANY, "Password : ", size=(80,-1))
-		
-		sizer.Add(notebook, 1, wx.EXPAND)
-		sizer.Add(user_label)
-		sizer.Add(pass_label)
-		
-		p.SetSizer(sizer)
-		p.SetAutoLayout(1)
 
 class MainWindow(wx.Frame):
 	def __init__(self, parent):
@@ -189,17 +231,17 @@ class MainWindow(wx.Frame):
 		
 		p.SetSizer(self.sizer)
 		p.SetAutoLayout(1)
-		self.sizer.Fit(self)
+		#self.sizer.Fit(self)
 	
 	def toggleOptions(self, e):
 		if self.notebook.IsShown():
-			self.notebook.Hide()
-			self.SetSize((-1,-1))
+			self.notebook.Hide()	
 			self.sizer.Fit(self)
+			self.SetSize((450,-1))
 		else:
 			self.notebook.Show()
-			self.SetSize((-1,-1))
 			self.sizer.Fit(self)
+			self.SetSize((450,-1))
 
 def main():
 	readConfigFile()	
