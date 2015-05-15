@@ -97,7 +97,7 @@ class HandleClient(LineOnlyReceiver):
 
 	def lineLengthExceeded(self, line):
 		logging.error('Client at {0} exceeded the Line Length'.format(self.clientAddr))
-		self.transport.loseConnection()
+		self.transport.abortConnection()
 
 	def lineReceived(self, line):
 		#warning, this logging line will write out passwords in the log
@@ -113,7 +113,7 @@ class HandleClient(LineOnlyReceiver):
 				self.getAuthLDAP(request[1],request[2]).addCallback(self.writePools)
 			except:
 				logging.debug("Could not get Pools")
-				self.transport.loseConnection()
+				self.transport.abortConnection()
 		elif request[0] == 'mr':
 			logging.info('User {0} requested a machine in pool {1} from {2}'.format(request[1],request[3],self.clientAddr))
 			#check authentication
@@ -123,7 +123,7 @@ class HandleClient(LineOnlyReceiver):
 				deferredtouple[0].addCallback(self.checkSeat,deferredtouple[1],request[1],request[3])
 			except:
 				logging.debug("Could not get a machine")
-				self.transport.loseConnection()
+				self.transport.abortConnection()
 				
 
 	def checkSeat(self, previousmachine, deferredmachine, user, pool):
@@ -258,7 +258,7 @@ class HandleClient(LineOnlyReceiver):
 
 class DoNothing(Protocol):
 	def makeConnection(self, transport):
-		transport.loseConnection()
+		transport.abortConnection()
 
 class HandleClientFactory(Factory):
 	
@@ -270,7 +270,9 @@ class HandleClientFactory(Factory):
 		#Blacklist check here
 		if addr.host in blacklist:
 			logging.debug("Blacklisted address {0} tried to connect".format(addr.host))
-			return None
+			protocol = DoNothing()
+			protocol.factory = self
+			return protocol
 		
 		#limit connection number here
 		if (settings.get("Max_Clients") is not None and settings.get("Max_Clients") != 'None') and (int(self.numConnections) >= int(settings.get("Max_Clients"))):
