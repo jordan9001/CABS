@@ -1,7 +1,11 @@
 #!/usr/bin/python
 import wx
 import socket, ssl
+import subprocess
+import sys
+from os.path import isfile
 from ast import literal_eval
+
 
 settings = {}
 command_settings = []
@@ -200,7 +204,10 @@ class DisplayTab(wx.Panel):
 		self.dispCount = disp.GetCount()
 		self.maxRez =  disp.GetClientArea()#max rez rectangle
 		self.maxWidth = self.maxRez[2] - self.maxRez[0]
-		self.maxHeight = self.maxRez[3] - self.maxRez[1]
+		self.maxHeight = self.maxRez[3] - self.maxRez[1]	
+		self.maxRezOneScreen =  disp.GetGeometry()#max rez rectangle one screen
+		self.maxWidthOneScreen = self.maxRezOneScreen[2] - self.maxRezOneScreen[0]
+		self.maxHeightOneScreen = self.maxRezOneScreen[3] - self.maxRezOneScreen[1]
 		Rezolutions = []
 		#now remove rezolutions above that
 		for rez in self.Resolutions:
@@ -226,6 +233,9 @@ class DisplayTab(wx.Panel):
 		self.chkautosize.Disable()
 		self.chkcomposition.Disable()
 		self.chksmoothing.Disable()
+		
+		self.depth_box.Disable()
+		self.depth_box.Hide()
 		
 		self.chkconbar.Hide()
 		self.chkback.Hide()
@@ -262,6 +272,42 @@ class DisplayTab(wx.Panel):
 		else:
 			#load from saved settings
 			pass
+	
+	def rgsSettings(self):
+		#return list of string arguments for RGS
+		cmdargs = []
+		if self.chkfull.IsEnabled() and self.chkfull.IsChecked():
+			if (self.chkspan.IsEnabled() and self.chkspan.IsChecked()) or (self.chkmatch.IsEnabled() and self.chkmatch.IsChecked()):
+				#Spanning enabled
+				cmdargs.append("-Rgreceiver.IsMatchReceiverResolutionEnabled=1")
+				cmdargs.append("-Rgreceiver.IsMatchReceiverPhysicalDisplaysEnabled=1")
+				cmdargs.append("-Rgreceiver.Session.0.VirtualDisplay.PreferredResolutionWidth="+str(self.maxWidth))
+				cmdargs.append("-Rgreceiver.Session.0.VirtualDisplay.PreferredResolutionHeight="+str(self.maxHeight))
+			else:
+				#No spanning
+				cmdargs.append("-Rgreceiver.Session.0.VirtualDisplay.IsPreferredResolutionEnabled=1")
+				cmdargs.append("-Rgreceiver.Session.0.RemoteDisplayWindow.X=0")
+				cmdargs.append("-Rgreceiver.Session.0.RemoteDisplayWindow.Y=0")
+				cmdargs.append("-Rgreceiver.Session.0.VirtualDisplay.PreferredResolutionWidth="+str(self.maxWidthOneScreen))
+				cmdargs.append("-Rgreceiver.Session.0.VirtualDisplay.PreferredResolutionHeight="+str(self.maxHeightOneScreen))
+		else:	
+			cmdargs.append("-Rgreceiver.Session.0.VirtualDisplay.PreferredResolutionWidth="+str(self.Resolutions[self.rez_slider.GetValue()][0]))
+			cmdargs.append("-Rgreceiver.Session.0.VirtualDisplay.PreferredResolutionHeight="+str(self.Resolutions[self.rez_slider.GetValue()][1]))
+		
+		if self.imgqual_box.IsEnabled():
+			cmdargs.append("-Rgreceiver.ImageCodec.Quality="+str(self.imgqual_box.GetValue()))
+		
+		if self.chkborders.IsEnabled() and self.chkborders.IsChecked():
+			cmdargs.append("-Rgreceiver.IsBordersEnabled=1")
+		else:
+			cmdargs.append("-Rgreceiver.IsBordersEnabled=1")
+		
+		if self.chksnap.IsEnabled() and self.chksnap.IsChecked():	
+			cmdargs.append("-Rgreceiver.IsSnapEnabled=1")
+		else:
+			cmdargs.append("-Rgreceiver.IsSnapEnabled=0")
+		
+		return cmdargs
 		
 class AudioTab(wx.Panel):
 	def __init__(self, parent):
@@ -316,6 +362,25 @@ class AudioTab(wx.Panel):
 		else:
 			#load from saved settings
 			pass
+	
+	def rgsSettings(self):
+		#return list of string arguments for RGS
+		cmdargs = []
+		if self.chkmute.IsEnabled() and self.chkmute.IsChecked():
+			cmdargs.append("-Rgreceiver.Audio.IsEnabled=0")
+		else:
+			cmdargs.append("-Rgreceiver.Audio.IsEnabled=1")
+			if self.chkstereo.IsEnabled() and self.chkstereo.IsChecked():
+				cmdargs.append("-Rgreceiver.Audio.IsInStereo=1")
+			else:
+				cmdargs.append("-Rgreceiver.Audio.IsInStereo=1")
+			if self.qual_choice.IsEnabled():
+				cmdargs.append("-Rgreceiver.Audio.Quality="+self.qual_choice.GetString(self.qual_choice.GetSelection()))
+			if self.chksessiononly.IsEnabled() and self.chksessiononly.IsChecked():
+				cmdargs.append("-Rgreceiver.Audio.IsFollowsFocusEnabled=1")
+			if self.chkmic.IsEnabled():
+				cmdargs.append("-Rgreceiver.Mic.IsEnabled=1")	
+		return cmdargs
 
 class KeyboardTab(wx.Panel):
 	def __init__(self, parent):
@@ -358,6 +423,12 @@ class KeyboardTab(wx.Panel):
 		else:
 			#load from saved settings
 			pass
+	
+	def rgsSettings(self):
+		#return list of string arguments for RGS
+		cmdargs = []
+
+		return cmdargs
 
 class DevicesTab(wx.Panel):
 	def __init__(self, parent):
@@ -408,6 +479,12 @@ class DevicesTab(wx.Panel):
 		else:
 			#load from saved settings
 			pass
+	
+	def rgsSettings(self):
+		#return list of string arguments for RGS
+		cmdargs = []
+
+		return cmdargs
 
 class TimersTab(wx.Panel):
 	def __init__(self, parent):
@@ -466,6 +543,12 @@ class TimersTab(wx.Panel):
 		else:
 			#load from saved settings
 			pass
+	
+	def rgsSettings(self):
+		#return list of string arguments for RGS
+		cmdargs = []
+
+		return cmdargs
 
 class OtherTab(wx.Panel):
 	def __init__(self, parent):
@@ -509,6 +592,11 @@ class OtherTab(wx.Panel):
 		else:
 			#load from saved settings
 			pass
+	def rgsSettings(self):
+		#return list of string arguments for RGS
+		cmdargs = []
+
+		return cmdargs
 
 class DomainAndServer(wx.Panel):
 	def __init__(self, parent):
@@ -695,9 +783,61 @@ class MainWindow(wx.Frame):
 			else:
 				#run the RGS command
 				print machine
+				self.runCommand(username, password, machine, port)
 		else:
 			dlg = wx.MessageDialog(self, "Could not Authenticate\nCheck your Username and Password".format(username), 'Error', wx.OK | wx.ICON_ERROR)
 			dlg.ShowModal()
+	
+	def runCommand(self, username, password, machine, port):
+		if settings.get("RGS_Options") == 'True':
+			#check if it is a valid file
+			if (not settings.get("RGS_Location") is None) and (settings.get("RGS_Location") != "None") and isfile(settings.get("RGS_Location")):
+				if str(machine).endswith(self.tab6.domandserv.domain.GetValue().strip()):
+					address = str(machine)
+				else:
+					address = str(machine) + "." + (self.tab6.domandserv.domain.GetValue().strip())
+				#process RGS settings, and build request
+				command = []
+				command.append(settings.get("RGS_Location"))
+				command.append("-nosplash")
+				command.append("-Rgreceiver.Session.0.IsConnectOnStartup=1")
+				command.append("-Rgreceiver.Session.0.Hostname="+address)
+				command.append("-Rgreceiver.Session.0.Username="+username)
+				if sys.platform.startswith("linux"):
+					#linux can't send XOR passwords, so in it's call trace, the password will be plaintext
+					#this is only on the local machine though, the network packets are encrypted
+					command.append("-Rgreceiver.Session.0.Password="+password)
+					command.append("-Rgreceiver.Session.0.PasswordFormat=Clear")
+				elif sys.platform.startswith("win"):
+					#find XOR windows password
+					XORpass = ""
+					for i in range(len(password)):
+						XORpass += hex(ord(password[i])^129)[2:]
+					command.append("-Rgreceiver.Session.0.Password="+XORpass)
+					command.append("-Rgreceiver.Session.0.PasswordFormat=XOR")
+				
+				command.extend(self.tab1.rgsSettings())
+				command.extend(self.tab1.rgsSettings())
+				command.extend(self.tab1.rgsSettings())
+				command.extend(self.tab1.rgsSettings())
+				command.extend(self.tab1.rgsSettings())
+				command.extend(self.tab1.rgsSettings())
+			else:
+				#invalid RGS Location	
+				dlg = wx.MessageDialog(self, "Invalid rgreceiver location\nCheck CABS_client.conf", 'Error', wx.OK | wx.ICON_ERROR)
+				dlg.ShowModal()
+		else:
+			#run the command given
+			if settings.get("Command") and settings.get("Command") != None and settings.get("Command") != 'None':
+				if str(machine).endswith(self.notebook.domain.GetValue().strip()):
+					address = str(machine)
+				else:
+					address = str(machine) + "." + (self.notebook.domain.GetValue().strip())
+				
+				command = settings.get("Command").format(user=username, address=address, password=password, port=port)
+				p = subprocess.Popen(command, shell=True)
+				print "running " + command
+				
 
 def main():
 	readConfigFile()	

@@ -4,5 +4,6 @@
 *.sqlite
 *.log
 *.xcf
+*.swp
 
 test*
