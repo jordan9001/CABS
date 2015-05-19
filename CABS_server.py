@@ -59,8 +59,8 @@ class HandleAgent(LineOnlyReceiver):
 					users += report[item] + ', '
 				users = users[0:-1]
 				logging.debug("Machine {0} reports user {1}".format(report[1],users))
-				querystring = "INSERT INTO current VALUES (%s, NULL, %s, True, NOW()) ON DUPLICATE KEY UPDATE confirmed = True"
-				r2 = dbpool.runQuery(querystring,(report[2],report[1]))
+				querystring = "INSERT INTO current VALUES (%s, NULL, %s, True, NOW()) ON DUPLICATE KEY UPDATE confirmed = True, connecttime = Now(), user = %s"
+				r2 = dbpool.runQuery(querystring,(report[2],report[1],users))
 			else:
 				querystring = "DELETE FROM current WHERE machine = %s"
 				r2 = dbpool.runQuery(querystring, (report[1],))
@@ -301,11 +301,13 @@ class HandleClientFactory(Factory):
 def checkMachines():
 	logging.debug("Checking Machines")
 	#check for inactive machines
-	querystring = "UPDATE machines SET active = False  WHERE last_heartbeat < DATE_SUB(NOW(), INTERVAL %s SECOND)"
-	r1 = dbpool.runQuery(querystring, (settings.get("Timeout_Time"),))
+	if (settings.get("Timeout_time") is not None) or (settings.get("Timeout_time") != 'None'):
+		querystring = "UPDATE machines SET active = False  WHERE last_heartbeat < DATE_SUB(NOW(), INTERVAL %s SECOND)"
+		r1 = dbpool.runQuery(querystring, (settings.get("Timeout_Time"),))
 	
 	#check for reserved machines without confirmation
-	querystring = "DELETE FROM current WHERE (confirmed = False AND connecttime < DATE_SUB(NOW(), INTERVAL %s SECOND))"
+	#querystring = "DELETE FROM current WHERE (confirmed = False AND connecttime < DATE_SUB(NOW(), INTERVAL %s SECOND))"
+	querystring = "DELETE FROM current WHERE (connecttime < DATE_SUB(NOW(), INTERVAL %s SECOND))"
 	r2 = dbpool.runQuery(querystring, (settings.get("Reserve_Time"),))
 
 def cacheBlacklist():

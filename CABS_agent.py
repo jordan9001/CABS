@@ -24,9 +24,13 @@ def heartbeat():
 		print userlist
 
 	elif sys.platform.startswith("win"):
-		p = subprocess.Popen(["query","session"], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+		p = subprocess.Popen(settings.get("C:/Users/Administrator/Desktop/PsLoggedon.exe -x", stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell = True)
 		output, err = p.communicate()
 		userlist = set()
+		for line in output.split('\r\n'):
+			if line.startswith(' '):
+				userline = line.split("\\")[-1]
+				userlist.add(line.strip())
 	else:
 		#badbadnotgood
 		#Unrecognized OS
@@ -40,9 +44,8 @@ def tellServer(userlist):
 		s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 		s.connect((settings.get("Host_Addr"), int(settings.get("Agent_Port"))))
 		content = "sr:" + settings.get("Hostname")
-		#for user in userlist:
-		#	content += ":{0}".format(user)
-		content += ":'; Drop Table test; --"
+		for user in userlist:
+			content += ":{0}".format(user)
 		content += "\r\n"
 		if (settings.get("SSL_Cert") is None) or (settings.get("SSL_Cert") == 'None'):
 			s_wrapped = s 
