@@ -235,6 +235,7 @@ class DisplayTab(wx.Panel):
 		self.chksmoothing.Disable()
 		
 		self.depth_box.Disable()
+		self.depth_label.Hide()
 		self.depth_box.Hide()
 		
 		self.chkconbar.Hide()
@@ -427,6 +428,10 @@ class KeyboardTab(wx.Panel):
 	def rgsSettings(self):
 		#return list of string arguments for RGS
 		cmdargs = []
+		if self.chkrepeat.IsEnabled():
+			cmdargs.append("-Rgreceiver.Hotkeys.IsKeyRepeatEnabled="+str(int(self.chkrepeat.IsChecked())))
+		if self.wincombo_rb0.IsEnabled():
+			cmdargs.append("-Rgreceiver.Hotkeys.IsSendCtrlAltEndAsCtrlAltDeleteEnabled="+str(int(self.wincombo_rb0.IsChecked()))) 
 
 		return cmdargs
 
@@ -483,6 +488,10 @@ class DevicesTab(wx.Panel):
 	def rgsSettings(self):
 		#return list of string arguments for RGS
 		cmdargs = []
+		if self.chkclip.IsEnabled():
+			cmdargs.append("-Rgreceiver.Clipboard.IsEnabled="+str(int(self.chkclip.IsChecked())))
+		if self.chkusb.IsEnabled():
+			cmdargs.append("-Rgreceiver.Usb.IsEnabled="+str(int(self.chkclip.IsChecked())))
 
 		return cmdargs
 
@@ -511,7 +520,7 @@ class TimersTab(wx.Panel):
 		self.cus_sizer.Add(self.warn_box, 1, wx.EXPAND)
 
 		self.dialog_label = wx.StaticText(self, wx.ID_ANY, "Dialog Timeout")
-		self.dialog_box = wx.SpinCtrl(self, wx.ID_ANY, "0", style=wx.SP_ARROW_KEYS, min=0, max=99, initial=0)
+		self.dialog_box = wx.SpinCtrl(self, wx.ID_ANY, "60", style=wx.SP_ARROW_KEYS, min=0, max=99, initial=60)
 		self.cus_sizer.Add(self.dialog_label, 0, wx.ALIGN_CENTER_VERTICAL)
 		self.cus_sizer.Add(self.dialog_box, 1, wx.EXPAND)
 		
@@ -538,7 +547,7 @@ class TimersTab(wx.Panel):
 			self.def_rb.SetValue(True)
 			self.error_box.SetValue(0)
 			self.warn_box.SetValue(0)
-			self.dialog_box.SetValue(0)
+			self.dialog_box.SetValue(60)
 			self.disableStuff(None)
 		else:
 			#load from saved settings
@@ -547,7 +556,15 @@ class TimersTab(wx.Panel):
 	def rgsSettings(self):
 		#return list of string arguments for RGS
 		cmdargs = []
-
+		
+		if self.cus_rb.IsChecked():
+			cmdargs.append("-Rgreceiver.Network.Timeout.Error="+str(int(self.error_box.GetValue())*1000))
+			cmdargs.append("-Rgreceiver.Network.Timeout.Warning="+str(int(self.warn_box.GetValue())*1000))
+			cmdargs.append("-Rgreceiver.Network.Timeout.Dialog="+str(int(self.dialog_box.GetValue())*1000))
+		
+		else:
+			cmdargs.append("-Rgreceiver.Network.Timeout.Dialog=60000")
+		
 		return cmdargs
 
 class OtherTab(wx.Panel):
@@ -595,7 +612,7 @@ class OtherTab(wx.Panel):
 	def rgsSettings(self):
 		#return list of string arguments for RGS
 		cmdargs = []
-
+		cmdargs.append("-Rgsender.IsReconnectOnConsoleDisconnectEnabled="+str(int(self.chkreconnect.IsChecked())))
 		return cmdargs
 
 class DomainAndServer(wx.Panel):
@@ -822,12 +839,14 @@ class MainWindow(wx.Frame):
 				command.extend(self.tab1.rgsSettings())
 				command.extend(self.tab1.rgsSettings())
 				command.extend(self.tab1.rgsSettings())
+				print "running" + str(command)
+				p = subprocess.Popen(command)
 			else:
 				#invalid RGS Location	
 				dlg = wx.MessageDialog(self, "Invalid rgreceiver location\nCheck CABS_client.conf", 'Error', wx.OK | wx.ICON_ERROR)
 				dlg.ShowModal()
 		else:
-			#run the command given
+			#run the command given (non-RGS)
 			if settings.get("Command") and settings.get("Command") != None and settings.get("Command") != 'None':
 				if str(machine).endswith(self.notebook.domain.GetValue().strip()):
 					address = str(machine)
@@ -836,7 +855,7 @@ class MainWindow(wx.Frame):
 				
 				command = settings.get("Command").format(user=username, address=address, password=password, port=port)
 				p = subprocess.Popen(command, shell=True)
-				print "running " + command
+				#print "running " + command
 				
 
 def main():
