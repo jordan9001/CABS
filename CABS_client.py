@@ -130,12 +130,12 @@ class MainPage(wx.Panel):
 class DisplayTab(wx.Panel):
 	def __init__(self, parent):
 		wx.Panel.__init__(self, parent)
-		self.Resolutions = [(800, 600), (1024, 768), (1152, 864), (1280, 768), (1280, 800), (1280, 960), (1280, 1024), (1360, 768), (1600, 1200), (1680, 1050), (1920, 1080), (1920, 1200), (1920, 1440), (2048, 1536), (2560, 1600)]
+		self.Resolutions = [(60, 40), (320, 320), (640, 480), (800, 600), (1024, 768), (1152, 864), (1280, 768), (1280, 800), (1280, 960), (1280, 1024), (1360, 768), (1600, 1200), (1680, 1050), (1920, 1080), (1920, 1200), (1920, 1440), (2048, 1536), (2560, 1600)]
 		self.getDisplayValues()
 		self.InitUI()
 
 	def InitUI(self):
-		self.flexsizer = wx.FlexGridSizer(1, 2, 3, 3) #rows, cols, vgap, hgap
+		self.flexsizer = wx.FlexGridSizer(cols=2, vgap=3, hgap=3) #rows, cols, vgap, hgap
 		self.flexsizer.AddGrowableCol(1,1)
 		
 		self.rez_label = wx.StaticText(self, wx.ID_ANY, "Screen Resolution:")
@@ -159,7 +159,7 @@ class DisplayTab(wx.Panel):
 		self.flexsizer.Add(self.imgqual_box, 1, wx.EXPAND)
 		
 		#self.chkbxsizer = wx.WrapSizer() #Need wxPython 2.9 or greater for this
-		self.chkbxsizer = wx.GridSizer(2,2,3)
+		self.chkbxsizer = wx.GridSizer(cols=2, vgap=2, hgap=3)
 		self.chkfull = wx.CheckBox(self, wx.ID_ANY, "Fullscreen")
 		self.chkbxsizer.Add(self.chkfull, 0, wx.EXPAND)	
 		self.chkspan = wx.CheckBox(self, wx.ID_ANY, "Enable Spanning")
