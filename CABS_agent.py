@@ -24,7 +24,7 @@ def heartbeat():
 		print userlist
 
 	elif sys.platform.startswith("win"):
-		p = subprocess.Popen(settings.get("C:/Users/Administrator/Desktop/PsLoggedon.exe -x", stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell = True)
+		p = subprocess.Popen(settings.get("C:/Users/Administrator/Desktop/PsLoggedon.exe -x -accepteula", stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell = True)
 		output, err = p.communicate()
 		userlist = set()
 		for line in output.split('\r\n'):
@@ -88,6 +88,8 @@ def readConfigFile():
 		settings["Con_Type"] = None
 	if not settings.get("Hostname"):
 		settings["Hostname"] = None
+	if not settings.get("Directory"):
+		settings["Directory"] = '/CABS/'
 
 	if (settings.get("Hostname") is None) or (settings.get("Hostname") == 'None'):
 		#If we want a fqdn we can use socket.gethostbyaddr(socket.gethostname())[0]
