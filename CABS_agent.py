@@ -3,6 +3,7 @@
 
 import socket, ssl
 import sys
+import os
 import subprocess
 from sched import scheduler
 from time import time, sleep
@@ -24,13 +25,14 @@ def heartbeat():
 		print userlist
 
 	elif sys.platform.startswith("win"):
-		p = subprocess.Popen(settings.get("C:/Users/Administrator/Desktop/PsLoggedon.exe -x -accepteula", stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell = True)
+		p = subprocess.Popen(settings.get("Directory")+"/PsLoggedon.exe -x -accepteula", stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell = True)
 		output, err = p.communicate()
 		userlist = set()
 		for line in output.split('\r\n'):
 			if line.startswith(' '):
 				userline = line.split("\\")[-1]
-				userlist.add(line.strip())
+				if userline.strip() != "ANONYMOUS LOGON" and userline.strip() != "LOCAL SERVICE":
+					userlist.add(userline.strip())
 	else:
 		#badbadnotgood
 		#Unrecognized OS
@@ -59,7 +61,11 @@ def tellServer(userlist):
 def readConfigFile():
 	#open the .conf file and return the variables as a dictionary
 	global settings
-	with open('CABS_agent.conf', 'r') as f:
+	if os.path.isfile(os.path.dirname(os.path.abspath(__file__)) + '/CABS_agent.conf'):
+		filelocation = os.path.dirname(os.path.abspath(__file__)) + '/CABS_agent.conf'
+	else:
+		filelocation = 'C:\\CABS' + '\\CABS_agent.conf'
+	with open(filelocation, 'r') as f:
 		for line in f:
 			line = line.strip()
 			if (not line.startswith('#')) and line:
