@@ -15,6 +15,12 @@ ID_SAVE_BUTTON = wx.NewId()
 ID_RESET_BUTTON = wx.NewId()
 ID_SUBMIT_BUTTON = wx.NewId()
 
+def getRGSversion():
+	p = subprocess.Popen([settings.get("RGS_Location"), "-version"], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+	out, er = p.communicate()
+	version = (out+er).split()[(out+er).split().index('Version')+1]
+	return version
+
 def readConfigFile():
 	global settings
         with open('CABS_client.conf', 'r') as f:
@@ -48,11 +54,16 @@ def readConfigFile():
 		settings["RGS_Location"] = None
 	if (not settings.get("Net_Domain")) or (settings.get("Net_Domain")=='None'):
 		settings["Net_Domain"] = ""
+	if not settings.get("RGS_Version"):
+		settings["RGS_Version"] = 'False'
 
 def getPools(user, password, host, port):
 	s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 	s.connect((host, port))
- 	content = "pr:{0}:{1}\r\n".format(user, password)
+	if settings.get("RGS_Version") == True:
+		content = "prv:{0}:{1}:{2}".format(user, password, getRGSversion())
+	else:
+ 		content = "pr:{0}:{1}\r\n".format(user, password)
 	#content = 'pr:notauser:fakepass\r\n'
 	if (settings.get("SSL_Cert") is None) or (settings.get("SSL_Cert") == 'None'):
 		s_wrapped = s

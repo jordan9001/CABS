@@ -113,7 +113,11 @@ class HandleClient(LineOnlyReceiver):
 		
 		#We can receieve 2 types of lines from a client, pool request (pr), machine request(mr)
 		request = line.split(':')
-		if request[0] == 'pr':
+		if request[0].startswith('pr'):
+			if request[0].endwith('v') and settings.get('RGS_Version') != 'False':
+				#check version
+				if request[-1] < settings.get('RGS_Version'):
+					self.transport.abortConnection()
 			logging.info('User {0} requested pool info from {1}'.format(request[1],self.clientAddr))
 			#authenticate_user
 			#get pools for user
@@ -403,6 +407,8 @@ def readConfigFile():
 		settings["SSL_Priv_Key"] = None
 	if not settings.get("SSL_Cert"):
 		settings["SSL_Cert"] = None
+	if not settings.get("RGS_Version"):
+		settings["RGS_Version"] = 'False'
 
 
 
