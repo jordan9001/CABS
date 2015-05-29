@@ -7,7 +7,7 @@ from cabs_admin.models import Pools
 from cabs_admin.models import Settings
 from cabs_admin.models import Blacklist
 from cabs_admin.models import Whitelist
-
+from cabs_admin.models import Log
 
 def index(request):	
     context = {}
@@ -247,4 +247,21 @@ def rmWhitelist(request):
         return HttpResponseRedirect(reverse('cabs_admin:blacklistPage'))
     else:
         return HttpResponseRedirect(reverse('cabs_admin:blacklistPage'))
+
+def historyPage(request):
+    if request.GET['pos']:
+        i = int(request.GET['pos'])
+    else:
+        i = 0
+    if request.GET['filter']:
+        pass
+    log_list = Log.objects.order_by('-timestamp')[i:(i+50)]
+    context = {'section_name': 'History', 'log_list': log_list, 'pos': pos}
+    return render(request, 'cabs_admin/history.html', context)
+
+
+
+
+
+
 

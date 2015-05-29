@@ -41,6 +41,16 @@ class Current(models.Model):
         db_table = 'current'
 
 
+class Log(models.Model):
+    timestamp = models.DateTimeField()
+    msg_type = models.CharField(max_length=16, blank=True)
+    message = models.CharField(max_length=1024, blank=True)
+
+    class Meta:
+        managed = False
+        db_table = 'log'
+
+
 class Machines(models.Model):
     name = models.CharField(max_length=32)
     machine = models.CharField(primary_key=True, unique=True, max_length=32)
