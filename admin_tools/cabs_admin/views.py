@@ -5,6 +5,7 @@ from django.core.urlresolvers import reverse
 from cabs_admin.models import Machines
 from cabs_admin.models import Pools
 from cabs_admin.models import Settings
+from cabs_admin.models import Blacklist
 
 
 def index(request):	
@@ -128,3 +129,28 @@ def rmSettings(request):
         return HttpResponseRedirect(reverse('cabs_admin:settingsPage'))
     else:
         return HttpResponseRedirect(reverse('cabs_admin:settingsPage'))
+
+def blacklistPage(request):
+    black_list = Blacklist.objects.using('cabs').all().order_by('-banned')
+    context = {'section_name': 'Blacklist', 'black_list': black_list}
+    return render(request, 'cabs_admin/blacklist.html', context)
+
+def setBlacklist(request):
+    try:
+        new_address = request.POST['address']
+        if new_address == '':
+            raise KeyError('This value cannot be empty')
+    except:
+        return HttpResopnseRedirect(reverse('cabs_admin:blacklistPage'))
+    else:
+        try:
+            s = Blacklist.objects.using('cabs').get(address=new_address)
+        except:
+            s = Blacklist(address=new_address, banned=True, attempts=0)
+        s.save(using='cabs')
+        return HrrpResponseRedirect(reverse('cabs_admin:settingsPage'))
+
+
+
+
+

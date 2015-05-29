@@ -7,13 +7,14 @@
     <tr></tr>
 {% for address in black_list %}
     <tr>
-        <form action="{% url 'cabs_admin:toggleBlacklist' %}" method="post">
+        <form action="{% url 'cabs_admin:blacklistPage' %}" method="post">
         {% csrf_token %}
         <input type="hidden" name="address" value="{{address.address}}">
         <td> 
         {{address.address}}
         <input class="button rm" type="submit" name="rm" value="X">
         <input class="button rm" type="submit" name="toggle" value="{% if address.banned %}Banned" style="background-color: black; color: white{% else %}Not Banned{% endif %}"> 
+        <input class="button rm" type="submit" name="whitelist" value="Add to Whitelist">
         </form>
         </td>
     </tr>
@@ -21,14 +22,11 @@
 </table>
 <hr/>
 <div class="container">
-    <h2>Add/Change a Machine</h2>
-    <p>Note that to add a machine, you must also install the CABS Agent on it.</p>
-    <form action="{% url 'cabs_admin:setMachines' %}" method="post">
+    <h2>Add an Entry</h2>
+    <form action="{% url 'cabs_admin:blacklistPage' %}" method="post">
     {% csrf_token %}
-    <label>Machine Name:</label>
-    <input type="text" name="machine" title="Machine Name" pattern="^\w+$">
-    <label>Pool:</label>
-    <input type="text" name="name" title="Machine Pool" pattern="^\w+$">
+    <label>Address:</label>
+    <input type="text" name="address" title="Address">
     <input class="button" type="submit" value="Submit">
     </form>
 </div>
