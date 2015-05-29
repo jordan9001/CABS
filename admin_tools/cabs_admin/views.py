@@ -6,6 +6,7 @@ from cabs_admin.models import Machines
 from cabs_admin.models import Pools
 from cabs_admin.models import Settings
 from cabs_admin.models import Blacklist
+from cabs_admin.models import Whitelist
 
 
 def index(request):	
@@ -132,7 +133,8 @@ def rmSettings(request):
 
 def blacklistPage(request):
     black_list = Blacklist.objects.using('cabs').all().order_by('-banned')
-    context = {'section_name': 'Blacklist', 'black_list': black_list}
+    white_list = Whitelist.objects.using('cabs').all()
+    context = {'section_name': 'Blacklist', 'black_list': black_list, 'white_list': white_list}
     return render(request, 'cabs_admin/blacklist.html', context)
 
 def setBlacklist(request):
@@ -141,16 +143,66 @@ def setBlacklist(request):
         if new_address == '':
             raise KeyError('This value cannot be empty')
     except:
-        return HttpResopnseRedirect(reverse('cabs_admin:blacklistPage'))
+        return HttpResponseRedirect(reverse('cabs_admin:blacklistPage'))
     else:
         try:
             s = Blacklist.objects.using('cabs').get(address=new_address)
+            s.banned=True
         except:
             s = Blacklist(address=new_address, banned=True, attempts=0)
         s.save(using='cabs')
-        return HrrpResponseRedirect(reverse('cabs_admin:settingsPage'))
+        ss = Whitelist.objects.using('cabs').filter(address=new_address)
+        ss.delete()
+        return HttpResponseRedirect(reverse('cabs_admin:blacklistPage'))
 
+def toggleBlacklist(request): 
+    try:
+        choosen_address = request.POST['address']
+        s = Blacklist.objects.using('cabs').get(address=choosen_address)
+        if 'rm' in request.POST:
+            s.delete(using='cabs')
+        elif 'whitelist' in request.POST:
+            s.delete(using='cabs')
+            try:
+                ss = Whitelist.objects.using('cabs').get(address=choosen_address)
+            except:
+                ss = Whitelist(address=choosen_address)
+            ss.save(using='cabs')
+        else:
+            if s.banned:
+                s.banned = False;
+            else:
+                s.banned = True;
+            s.save(using='cabs')
+    except:
+        return HttpResponseRedirect(reverse('cabs_admin:blacklistPage'))
+    else:
+        return HttpResponseRedirect(reverse('cabs_admin:blacklistPage'))
 
+def setWhitelist(request):
+    try:
+        new_address = request.POST['address']
+        if new_address == '':
+            raise KeyError('This value cannot be empty')
+    except:
+        return HttpResponseRedirect(reverse('cabs_admin:blacklistPage'))
+    else:
+        try:
+            s = Whitelist.objects.using('cabs').get(address=new_address)
+        except:
+            s = Whitelist(address=new_address)
+        s.save(using='cabs')
+        ss = Blacklist.objects.using('cabs').filter(address=new_address)
+        ss.delete()
+        return HttpResponseRedirect(reverse('cabs_admin:blacklistPage'))
 
-
+def rmWhitelist(request):
+    try:
+        choosen_address = request.POST['address']
+        s = Whitelist.objects.using('cabs').get(address=choosen_address)
+        s.delete(using='cabs')
+    except:
+        return HttpResponseRedirect(reverse('cabs_admin:blacklistPage'))
+    else:
+        return HttpResponseRedirect(reverse('cabs_admin:blacklistPage'))
 

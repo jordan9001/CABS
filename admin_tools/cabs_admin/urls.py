@@ -14,4 +14,8 @@ urlpatterns = patterns('',
     url(r'^settings/submit/$', views.setSettings, name='setSettings'),
     url(r'^settings/rm/$', views.rmSettings, name='rmSettings'),
     url(r'^blacklist/$', views.blacklistPage, name='blacklistPage'),
+    url(r'^blacklist/submit/$', views.setBlacklist, name='setBlacklist'),
+    url(r'^blacklist/toggle/$', views.toggleBlacklist, name='toggleBlacklist'),
+    url(r'^whitelist/submit/$', views.setWhitelist, name='setWhitelist'),
+    url(r'^whitelist/rm/$', views.rmWhitelist, name='rmWhitelist'),
 )
