@@ -63,8 +63,14 @@ def setPools(request):
         new_description = request.POST['description']
         new_secondary = request.POST['secondary']
         new_groups = request.POST['groups']
-        if (new_pool == ''):
+        if new_pool == '':
             raise KeyError('This value cannot be empty')
+        if new_description == '':
+            new_description = None;
+        if new_secondary == '':
+            new_secondary = None;
+        if new_groups == '':
+            new_groups = None;
     except:
         return HttpResponseRedirect(reverse('cabs_admin:poolsPage'))
     else:
@@ -108,7 +114,7 @@ def setSettings(request):
     try:
         new_value = request.POST['value']
         new_setting = request.POST['setting']
-        if (new_value == '') and (not new_setting.endswith('fix')):
+        if ((new_value == '') and (not new_setting.endswith('fix'))) or (new_setting == ''):
             raise KeyError('This value cannot be empty')
     except:
         return HttpResponseRedirect(reverse('cabs_admin:settingsPage'))

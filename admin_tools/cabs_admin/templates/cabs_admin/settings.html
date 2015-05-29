@@ -23,7 +23,8 @@
 
 <div class="container">
 <h2> Add/Change a Setting </h2>
-<p>These settings will override previous settings in the Broker's CABS_server.conf file.</p>
+<p>These settings will override previous settings in the Broker's CABS_server.conf file.
+<br/>The Broker server will have to be restart for these settings to be implemented.</p>
 <form action="{% url 'cabs_admin:settingsPage' %}" method="get">
     <select class="main_choice" name="setting" onchange="this.form.submit()">
         <option value="" disabled {% if not option_choosen %} selected {% endif %}>Choose a Setting</option>
@@ -33,7 +34,7 @@
         <option value="Use_Blacklist" {% if option_choosen == 'Use_Blacklist' %} selected {% endif %}>Enable Blacklist</option>
         <option value="Auto_Blacklist" {% if option_choosen == 'Auto_Blacklist' %} selected {% endif %}>Automatically Blacklist Attacks</option>
         <option value="Auto_Max" {% if option_choosen == 'Auto_Max' %} selected {% endif %}>Blacklist Connections per Minute</option>
-        <option value="Log_Level" {% if option_choosen == 'Log_Level' %} selected {% endif %}>History Verbosity</option>
+        <option value="Log_Level" {% if option_choosen == 'Log_Level' %} selected {% endif %}>History Log Output Level</option>
         <option value="Auth_Server" {% if option_choosen == 'Auth_Server' %} selected {% endif %}>Authentication Server</option>
         <option value="Auth_Prefix" {% if option_choosen == 'Auth_Prefix' %} selected {% endif %}>Authentication Prefix String</option>
         <option value="Auth_Postfix" {% if option_choosen == 'Auth_Postfix' %} selected {% endif %}>Authentication Postfix String</option>
