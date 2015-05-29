@@ -2,6 +2,20 @@
 
 <center>
 <div role="main">
+
+<div style="height: 2.1rem">
+{% if selected_pool %}
+    <form action="{% url 'cabs_admin:commentPools' %}" method="post">
+    {% csrf_token %}
+        <label>Explain why {{selected_pool}} is disabled:</label>
+        <input type="text" name="reason" title="Reason">
+        <input type="hidden" name="pool" value="{{selected_pool}}">
+        <input class="button rm" type="submit" value="OK" style="float: inherit">
+    </form>
+{% else %}
+Hover over the Disabled buttons to see the reason why they were disabled.
+{% endif %}
+</div>
 <table class="table_list">
     <tr><td> Pool </td><td> Description </td><td> Secondary </td><td> Groups </td></tr>
     <tr></tr>
@@ -15,7 +29,7 @@
         <td> {{pool.secondary}} </td>
         <td> {{pool.groups}}
         <input class="button rm" type="submit" name="rm" value="X">
-        <input class="button rm" type="submit" name="toggle" value="{% if pool.deactivated %}Disabled" style="background-color: black; color: white{% else %}Enabled{% endif %}">
+        <button class="button rm" type="submit" name="toggle" value="{{pool.name}}" {% if pool.deactivated %} title="{{pool.reason}}" style="background-color: black; color: white">Disabled{% else %}>Enabled{% endif %}</button>
         </td>
         </form>
     </tr>

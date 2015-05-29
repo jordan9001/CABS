@@ -2,6 +2,20 @@
 
 <center>
 <div role="main">
+
+<div style="height: 2.1rem">
+{% if selected_machine %}
+    <form action="{% url 'cabs_admin:commentMachines' %}" method="post">
+    {% csrf_token %}
+        <label>Explain why {{selected_machine}} is disabled:</label>
+        <input type="text" name="reason" title="Reason">
+        <input type="hidden" name="machine" value="{{selected_machine}}">
+        <input class="button rm" type="submit" value="OK" style="float: inherit">
+    </form>
+{% else %}
+Hover over the Disabled buttons to see the reason why they were disabled.
+{% endif %}
+</div>
 <table class="table_list">
     <tr><td> Machine </td><td> Pool </td><td> Active </td></tr>
     <tr></tr>
@@ -15,12 +29,13 @@
         <td> 
         {{machine.active}}
         <input class="button rm" type="submit" name="rm" value="X">
-        <input class="button rm" type="submit" name="toggle" value="{% if machine.deactivated %}Disabled" style="background-color: black; color: white{% else %}Enabled{% endif %}"> 
+        <button class="button rm" type="submit" name="toggle" value="{{machine.machine}}" {% if machine.deactivated %} title="{{machine.reason}}"style="background-color: black; color: white">Disabled{% else %}>Enabled{% endif %}</button>
         </form>
         </td>
     </tr>
 {% endfor %}
 </table>
+
 <hr/>
 <div class="container">
     <h2>Add/Change a Machine</h2>

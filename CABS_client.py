@@ -88,6 +88,8 @@ def getPools(user, password, host, port):
     return poolset
 
 def getMachine(user, password, pool, host, port):
+    if pool == '' or pool is None:
+        return ''
     s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     s.connect((host, port))
     content = "mr:{0}:{1}:{2}\r\n".format(user, password, pool)

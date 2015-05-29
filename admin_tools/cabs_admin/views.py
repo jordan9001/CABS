@@ -1,4 +1,4 @@
-from django.shortcuts import render
+from django.shortcuts import render, render_to_response
 from django.http import HttpResponseRedirect
 from django.core.urlresolvers import reverse
 
@@ -13,9 +13,9 @@ def index(request):
     context = {}
     return render(request, 'cabs_admin/index.html', context)
 
-def machinesPage(request):
+def machinesPage(request, selected_machine=None):
     machine_list = Machines.objects.using('cabs').all()
-    context = {'section_name': 'Machines', 'machine_list': machine_list}
+    context = {'section_name': 'Machines', 'machine_list': machine_list, 'selected_machine': selected_machine}
     return render(request, 'cabs_admin/machines.html', context)
 
 def setMachines(request):
@@ -37,6 +37,7 @@ def setMachines(request):
 
 def toggleMachines(request):
     try:
+        selected_machine = ""
         choosen_machine = request.POST['machine']
         s = Machines.objects.using('cabs').get(machine=choosen_machine)
         if 'rm' in request.POST:
@@ -46,15 +47,33 @@ def toggleMachines(request):
                 s.deactivated = False;
             else:
                 s.deactivated = True;
+                #add a location for commenting on reason
+                selected_machine = s.machine;
             s.save(using='cabs')
+            
+    except:
+        return HttpResponseRedirect(reverse('cabs_admin:machinesPage'))
+    else:
+        if selected_machine:
+            return HttpResponseRedirect(reverse('cabs_admin:machinesPage')+"toggle/"+selected_machine+"/")
+        else:
+            return HttpResponseRedirect(reverse('cabs_admin:machinesPage'))
+
+def commentMachines(request):
+    try:
+        choosen_machine = request.POST['machine']
+        new_reason = request.POST['reason']
+        s = Machines.objects.using('cabs').get(machine=choosen_machine)
+        s.reason = new_reason
+        s.save(using='cabs')
     except:
         return HttpResponseRedirect(reverse('cabs_admin:machinesPage'))
     else:
         return HttpResponseRedirect(reverse('cabs_admin:machinesPage'))
 
-def poolsPage(request):
+def poolsPage(request, selected_pool=None):
     pool_list = Pools.objects.using('cabs').all()
-    context = {'section_name': 'Pools', 'pool_list': pool_list}
+    context = {'section_name': 'Pools', 'pool_list': pool_list, 'selected_pool': selected_pool}
     return render(request, 'cabs_admin/pools.html', context)
 
 def setPools(request):
@@ -86,6 +105,7 @@ def setPools(request):
 
 def togglePools(request): 
     try:
+        selected_pool = ""
         choosen_pool = request.POST['pool']
         s = Pools.objects.using('cabs').get(name=choosen_pool)
         if 'rm' in request.POST:
@@ -95,7 +115,23 @@ def togglePools(request):
                 s.deactivated = False;
             else:
                 s.deactivated = True;
+                selected_pool = s.name;
             s.save(using='cabs')
+    except:
+        return HttpResponseRedirect(reverse('cabs_admin:poolsPage'))
+    else:
+        if selected_pool:
+            return HttpResponseRedirect(reverse('cabs_admin:poolsPage')+"toggle/"+selected_pool+"/")
+        else:
+            return HttpResponseRedirect(reverse('cabs_admin:poolsPage'))
+
+def commentPools(request):
+    try:
+        choosen_pool = request.POST['pool']
+        new_reason = request.POST['reason']
+        s = Pools.objects.using('cabs').get(name=choosen_pool)
+        s.reason = new_reason
+        s.save(using='cabs')
     except:
         return HttpResponseRedirect(reverse('cabs_admin:poolsPage'))
     else:

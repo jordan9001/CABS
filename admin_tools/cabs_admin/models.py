@@ -47,6 +47,7 @@ class Machines(models.Model):
     active = models.BooleanField(default=False)
     last_heartbeat = models.DateTimeField()
     deactivated = models.BooleanField(default=False)
+    reason = models.CharField(max_length=120, blank=True)
     
     def __unicode__(self):
         return self.pk
@@ -62,6 +63,7 @@ class Pools(models.Model):
     secondary = models.CharField(max_length=1024, blank=True)
     groups = models.CharField(max_length=1024, blank=True)
     deactivated = models.BooleanField(default=False)
+    reason = models.CharField(max_length=120, blank=True)
 
     def __unicode__(self):
         return self.pk
