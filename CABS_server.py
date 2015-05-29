@@ -114,7 +114,7 @@ class HandleClient(LineOnlyReceiver):
         #We can receieve 2 types of lines from a client, pool request (pr), machine request(mr)
         request = line.split(':')
         if request[0].startswith('pr'):
-            if request[0].endwith('v') and settings.get('RGS_Version') != 'False':
+            if request[0].endswith('v') and settings.get('RGS_Version') != 'False':
                 #check version
                 if request[-1] < settings.get('RGS_Version'):
                     self.transport.abortConnection()
@@ -145,7 +145,7 @@ class HandleClient(LineOnlyReceiver):
         else:
             self.writeMachine(previousmachine, user, pool, True)
 
-    def writeMachine(self, machines, user, pool, restored):
+    def writeMachine(self, machines, user, pool, restored, secondary=False):
         if restored:
             stringmachine = random.choice(machines)[0]  
             logging.info("Restored machine {0} in pool {1} to {2}".format(stringmachine, pool, user))
@@ -154,7 +154,11 @@ class HandleClient(LineOnlyReceiver):
             
         elif len(machines) == 0:
             #check secondary pools here
-            self.getSecondary(pool).addBoth(self.getSecondaryMachines, user, pool) 
+            if not secondary:
+                self.getSecondary(pool).addBoth(self.getSecondaryMachines, user, pool)
+            else:
+                logging.info("Could not find an open machine in {0} or its secondaries".format(pool))
+                self.transport.abortConnection()
         else:
             stringmachine = random.choice(machines)[0]  
             #write to database to reserve machine
@@ -254,7 +258,14 @@ class HandleClient(LineOnlyReceiver):
 
     def getSecondaryMachines(self, pools, user, originalpool):
         #parse secondary pools and do a machine request
-        print pools
+        args = tuple(pools[0][0].split(','))
+        querystring = "SELECT machines.machine FROM machines INNER JOIN pools ON pools.name = machines.name WHERE ((machines.machine NOT IN (SELECT machine FROM current)) AND (active = True) AND (machines.deactivated = False) AND (pools.deactivated = False) AND ((pools.name = %s)"
+        for pool in args:
+            querystring += " OR (pools.name = %s)"
+        querystring += "))"
+        args = (originalpool,) + args
+        r = dbpool.runQuery(querystring, args)
+        r.addBoth(self.writeMachine, user, originalpool, False, True)
 
     def getPools(self, groups, auth):
         poolset = set()
@@ -332,7 +343,7 @@ def checkMachines():
 
 def cacheBlacklist():
     logging.debug("Cacheing the Blacklist")
-    querystring = "SELECT address FROM blacklist WHERE banned = True"
+    querystring = "SELECT blacklist.address FROM blacklist LEFT JOIN whitelist ON blacklist.address = whitelist.address WHERE (banned = True AND whitelist.address IS NULL)"
     r = dbpool.runQuery(querystring)
     r.addBoth(setBlacklist)
 
@@ -361,6 +372,7 @@ def readConfigFile():
                         key = key[:-1]
                     except:
                         key = line
+                        key = key.strip()
                         key = key[:-1]
                         val = ''
                 settings[key] = val
