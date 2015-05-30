@@ -45,6 +45,7 @@ class Log(models.Model):
     timestamp = models.DateTimeField()
     msg_type = models.CharField(max_length=16, blank=True)
     message = models.CharField(max_length=1024, blank=True)
+    id = models.IntegerField(primary_key=True)
 
     class Meta:
         managed = False

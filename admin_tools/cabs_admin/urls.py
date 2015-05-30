@@ -22,4 +22,5 @@ urlpatterns = patterns('',
     url(r'^blacklist/toggle/$', views.toggleBlacklist, name='toggleBlacklist'),
     url(r'^whitelist/submit/$', views.setWhitelist, name='setWhitelist'),
     url(r'^whitelist/rm/$', views.rmWhitelist, name='rmWhitelist'),
+    url(r'^history/$', views.historyPage, name='historyPage'),
 )

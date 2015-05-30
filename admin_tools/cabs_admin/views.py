@@ -249,19 +249,13 @@ def rmWhitelist(request):
         return HttpResponseRedirect(reverse('cabs_admin:blacklistPage'))
 
 def historyPage(request):
-    if request.GET['pos']:
-        i = int(request.GET['pos'])
+    if request.GET.get('position'):
+        i = int(request.GET.get('position'))
     else:
         i = 0
-    if request.GET['filter']:
+    if request.GET.get('filter'):
         pass
-    log_list = Log.objects.order_by('-timestamp')[i:(i+50)]
-    context = {'section_name': 'History', 'log_list': log_list, 'pos': pos}
+    logger_list = Log.objects.using('cabs').order_by('-timestamp', '-id')[i:(i+50)]
+    context = {'section_name': 'History', 'logger_list': logger_list, 'position': i}
     return render(request, 'cabs_admin/history.html', context)
-
-
-
-
-
-
 
