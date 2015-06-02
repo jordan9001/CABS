@@ -3,6 +3,7 @@ import wx
 import socket, ssl
 import subprocess
 import sys
+from time import sleep
 from os.path import isfile
 from ast import literal_eval
 
@@ -59,7 +60,7 @@ def readConfigFile():
     if not settings.get("RGS_Version"):
         settings["RGS_Version"] = 'False'
 
-def getPools(user, password, host, port):
+def getPools(user, password, host, port, retry=0):
     s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     s.connect((host, port))
     if settings.get("RGS_Version") == True:
@@ -80,6 +81,12 @@ def getPools(user, password, host, port):
         pools += chunk
         if chunk == '':
             break;
+    if pools.startswith("Err:"):
+        if (pools == "Err:RETRY") and (retry < 6):
+            sleep(retry)
+            return getPools(user, password, host, port, retry+1)
+        else:
+            raise ServerError(pools)
     poolsliterals = pools.split('\n')
     poolset = set()
     for literal in poolsliterals:
@@ -87,7 +94,7 @@ def getPools(user, password, host, port):
             poolset.add(literal_eval(literal))
     return poolset
 
-def getMachine(user, password, pool, host, port):
+def getMachine(user, password, pool, host, port, retry=0):
     if pool == '' or pool is None:
         return ''
     s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -107,7 +114,31 @@ def getMachine(user, password, pool, host, port):
         machine += chunk
         if chunk == '':
             break;
+    if machine.startswith("Err:"):
+        if (machine == "Err:RETRY") and (retry < 6):
+            sleep(retry)
+            return getMachine(user, password, pool, host, port, retry+1)
+        else:
+            raise ServerError(pools)
     return machine
+
+class ServerError(Exception):
+    pass
+
+def showError(errortext):
+    #generic errors
+    if errortext == "pools":
+        message = "The server could not be reached, try again."
+    elif errortext == "machines":
+        message = "The server could not be reached, try again." 
+    elif errortext.startswith("Err:"):
+        message = errortext.split(':',1)[1]
+    else:
+        message = "Unexpected Error."
+    
+    dlg = wx.MessageDialog(self, message, 'Error', wx.OK | wx.ICON_ERROR)
+    dlg.ShowModal()
+
 
 class MainPage(wx.Panel):
     def __init__(self, parent):
@@ -783,9 +814,10 @@ class MainWindow(wx.Frame):
             try:
                 pools = getPools(username, password, server, port)
                 self.poolDialog(pools, username, password, server, port)
+            except ServerError as e:
+                showError(e[0])
             except:
-                dlg = wx.MessageDialog(self, "Could not reach server at {0}:{1}".format(server,port), 'Error', wx.OK | wx.ICON_ERROR)
-                dlg.ShowModal()
+                showError("pools")
         
         elif e.GetId() == ID_SAVE_BUTTON:
             #save settings, which will be loaded automatically at the start with load(false), once we get it goin
@@ -807,19 +839,17 @@ class MainWindow(wx.Frame):
             dlg.Destroy()
             try:
                 machine = getMachine(username, password, poolchoice, server, port)
+            except ServerError as e:
+                showError(e[0])
             except:
-                machine = ""
-            if (not machine) or machine.startswith("Err:"):
-                dlg = wx.MessageDialog(self, "Could not get a Machine in {0}\nTry again, or try a new pool.".format(poolchoice), 'Error', wx.OK | wx.ICON_ERROR)
-                dlg.ShowModal()
+                showError("machines")
             else:
                 #run the RGS command
                 print machine
                 self.runCommand(username, password, machine, port)
         else:
-            dlg = wx.MessageDialog(self, "Could not Authenticate\nCheck your Username and Password".format(username), 'Error', wx.OK | wx.ICON_ERROR)
-            dlg.ShowModal()
-    
+            showError("machines")
+
     def runCommand(self, username, password, machine, port):
         if settings.get("RGS_Options") == 'True':
             #check if it is a valid file

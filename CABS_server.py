@@ -41,7 +41,7 @@ class HandleAgent(LineOnlyReceiver):
 
     def lineLengthExceeded(self, line):
         logger.error('Agent at {0} exceeded the Line Length'.format(self.agentAddr))
-        self.transport.loseConnection()
+        self.transport.abortConnection()
 
     def lineReceived(self, line):
         #types of reports = status report (sr) or login report (lr) or logoff report (fr)
@@ -121,7 +121,8 @@ class HandleClient(LineOnlyReceiver):
                 print "###################################" + settings.get('RGS_Version')
                 logger.debug('User {0} at {1} is using RGS {2}'.format(request[1], self.clientAddr, request[-1]))
                 if request[-1] < settings.get('RGS_Version'):
-                    self.transport.abortConnection()
+                    self.transport.write("Err:Sorry, your RGS reciever is out of date, it should be at least {0}".format(settings.get('RGS_Version')
+                    self.transport.loseConnection()
             logger.info('User {0} requested pool info from {1}'.format(request[1],self.clientAddr))
             #authenticate_user
             #get pools for user
@@ -129,7 +130,8 @@ class HandleClient(LineOnlyReceiver):
                 self.getAuthLDAP(request[1],request[2]).addCallback(self.writePools)
             except:
                 logger.debug("Could not get Pools")
-                self.transport.abortConnection()
+                self.transport.write("Err:Could not authenticate.")
+                self.transport.loseConnection()
         elif request[0] == 'mr':
             logger.info('User {0} requested a machine in pool {1} from {2}'.format(request[1],request[3],self.clientAddr))
             if (request[3] is not None) and (request[3] != ''):
@@ -162,7 +164,8 @@ class HandleClient(LineOnlyReceiver):
                 self.getSecondary(pool).addBoth(self.getSecondaryMachines, user, pool)
             else:
                 logger.info("Could not find an open machine in {0} or its secondaries".format(pool))
-                self.transport.abortConnection()
+                self.transport.write("Err:Sorry, There are no open machines in {0}.".format(pool))
+                self.transport.loseConnection()
         else:
             stringmachine = random.choice(machines)[0]  
             #write to database to reserve machine
@@ -173,7 +176,8 @@ class HandleClient(LineOnlyReceiver):
         if error:
             #don't send anything, client will try again a few times
             logger.warning("Tried to reserve machine {0} but was unable".format(machine))
-            self.transport.abortConnection()
+            self.transport.write("Err:RETRY")
+            self.transport.loseConnection()
         else:
             logger.info("Gave machine {0} in pool {1} to {2}".format(machine, pool, user))
             self.transport.write(machine)
