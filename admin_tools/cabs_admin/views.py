@@ -1,6 +1,8 @@
 from django.shortcuts import render, render_to_response
 from django.http import HttpResponseRedirect
 from django.core.urlresolvers import reverse
+from django.contrib.auth import views
+from django.contrib.auth.decorators import login_required
 
 from cabs_admin.models import Machines
 from cabs_admin.models import Pools
@@ -9,15 +11,27 @@ from cabs_admin.models import Blacklist
 from cabs_admin.models import Whitelist
 from cabs_admin.models import Log
 
-def index(request):	
+def index(request):
     context = {}
-    return render(request, 'cabs_admin/index.html', context)
+    if not request.user.is_authenticated():
+        template_response = views.login(request, template_name='cabs_admin/logindex.html', current_app='cabs_admin', extra_context=context)
+        return template_response
+    else:
+        user_string = "Logged in as {0}".format(request.user.get_username())
+        context['section_name'] = user_string 
+        return render(request, 'cabs_admin/index.html', context)
 
+def logoutView(request):
+    template_response = views.logout(request, template_name='cabs_admin/index.html', current_app='cabs_admin')
+    return template_response
+
+@login_required
 def machinesPage(request, selected_machine=None):
     machine_list = Machines.objects.using('cabs').all()
     context = {'section_name': 'Machines', 'machine_list': machine_list, 'selected_machine': selected_machine}
     return render(request, 'cabs_admin/machines.html', context)
 
+@login_required
 def setMachines(request):
     try: 
         new_name = request.POST['name']
@@ -35,6 +49,7 @@ def setMachines(request):
         s.save(using='cabs')
         return HttpResponseRedirect(reverse('cabs_admin:machinesPage'))
 
+@login_required
 def toggleMachines(request):
     try:
         selected_machine = ""
@@ -59,6 +74,7 @@ def toggleMachines(request):
         else:
             return HttpResponseRedirect(reverse('cabs_admin:machinesPage'))
 
+@login_required
 def commentMachines(request):
     try:
         choosen_machine = request.POST['machine']
@@ -71,11 +87,13 @@ def commentMachines(request):
     else:
         return HttpResponseRedirect(reverse('cabs_admin:machinesPage'))
 
+@login_required
 def poolsPage(request, selected_pool=None):
     pool_list = Pools.objects.using('cabs').all()
     context = {'section_name': 'Pools', 'pool_list': pool_list, 'selected_pool': selected_pool}
     return render(request, 'cabs_admin/pools.html', context)
 
+@login_required
 def setPools(request):
     try:
         new_pool = request.POST['name']
@@ -103,6 +121,7 @@ def setPools(request):
         s.save(using='cabs')
         return HttpResponseRedirect(reverse('cabs_admin:poolsPage'))
 
+@login_required
 def togglePools(request): 
     try:
         selected_pool = ""
@@ -125,6 +144,7 @@ def togglePools(request):
         else:
             return HttpResponseRedirect(reverse('cabs_admin:poolsPage'))
 
+@login_required
 def commentPools(request):
     try:
         choosen_pool = request.POST['pool']
@@ -137,6 +157,7 @@ def commentPools(request):
     else:
         return HttpResponseRedirect(reverse('cabs_admin:poolsPage'))
 
+@login_required
 def settingsPage(request):
     settings_list = Settings.objects.using('cabs').all()
     try:
@@ -146,6 +167,7 @@ def settingsPage(request):
     context = {'section_name': 'Change Settings', 'settings_list': settings_list, 'option_choosen': option_choosen}
     return render(request, 'cabs_admin/settings.html', context)
 
+@login_required
 def setSettings(request):
     try:
         new_value = request.POST['value']
@@ -163,6 +185,7 @@ def setSettings(request):
         s.save(using='cabs')
         return HttpResponseRedirect(reverse('cabs_admin:settingsPage'))
 
+@login_required
 def rmSettings(request):
     try:
         choosen_setting = request.POST['setting']
@@ -173,12 +196,14 @@ def rmSettings(request):
     else:
         return HttpResponseRedirect(reverse('cabs_admin:settingsPage'))
 
+@login_required
 def blacklistPage(request):
     black_list = Blacklist.objects.using('cabs').all().order_by('-banned')
     white_list = Whitelist.objects.using('cabs').all()
     context = {'section_name': 'Blacklist', 'black_list': black_list, 'white_list': white_list}
     return render(request, 'cabs_admin/blacklist.html', context)
 
+@login_required
 def setBlacklist(request):
     try:
         new_address = request.POST['address']
@@ -197,6 +222,7 @@ def setBlacklist(request):
         ss.delete()
         return HttpResponseRedirect(reverse('cabs_admin:blacklistPage'))
 
+@login_required
 def toggleBlacklist(request): 
     try:
         choosen_address = request.POST['address']
@@ -221,6 +247,7 @@ def toggleBlacklist(request):
     else:
         return HttpResponseRedirect(reverse('cabs_admin:blacklistPage'))
 
+@login_required
 def setWhitelist(request):
     try:
         new_address = request.POST['address']
@@ -238,6 +265,7 @@ def setWhitelist(request):
         ss.delete()
         return HttpResponseRedirect(reverse('cabs_admin:blacklistPage'))
 
+@login_required
 def rmWhitelist(request):
     try:
         choosen_address = request.POST['address']
@@ -248,6 +276,7 @@ def rmWhitelist(request):
     else:
         return HttpResponseRedirect(reverse('cabs_admin:blacklistPage'))
 
+@login_required
 def historyPage(request):
     if request.GET.get('position'):
         i = int(request.GET.get('position'))

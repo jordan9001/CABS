@@ -23,8 +23,61 @@ SECRET_KEY = 'ru1-%pf+4%tqe6uow&_xrz6!z35+%bp!^!ru=jve!1&ti&7fc7'
 DEBUG = True
 
 TEMPLATE_DEBUG = True
-
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+    'handlers': {
+        'mail_admins': {
+            'level': 'ERROR',
+            'class': 'django.utils.log.AdminEmailHandler'
+        },
+        'stream_to_console': {
+            'level': 'DEBUG',
+            'class': 'logging.StreamHandler'
+        },
+    },
+    'loggers': {
+        'django.request': {
+            'handlers': ['mail_admins'],
+            'level': 'ERROR',
+            'propagate': True,
+        },
+        'django_auth_ldap': {
+            'handlers': ['stream_to_console'],
+            'level': 'DEBUG',
+            'propagate': True,
+        },
+    }
+}
 ALLOWED_HOSTS = []
+
+#SESSION_COOKIE_SECURE = True
+SESSION_EXPIRE_AT_BROWSER_CLOSE = True
+#CSRF_COOKIE_SECURE = True
+
+# Django-auth-ldap
+AUTHENTICATION_BACKENDS = (
+    'django_auth_ldap.backend.LDAPBackend',
+    #'django.contrib.auth.backends.ModelBackend',
+)
+AUTH_LDAP_USER_DN_TEMPLATE = "CAEDM_AD\\%(user)s"
+AUTH_LDAP_BIND_AS_AUTHENTICATING_USER = True
+AUTH_LDAP_SERVER_URI = "ldap://ad01.et.byu.edu"
+import ldap
+from django_auth_ldap.config import LDAPSearch, MemberDNGroupType
+AUTH_LDAP_CONNECTION_OPTIONS = {
+    ldap.OPT_DEBUG_LEVEL: 1,
+    ldap.OPT_REFERRALS: 0,
+}
+AUTH_LDAP_USER_SEARCH = LDAPSearch("dc=et,dc=byu,dc=edu", ldap.SCOPE_SUBTREE, "(cn=%(user)s)")
+
+AUTH_LDAP_GROUP_TYPE = MemberDNGroupType('member')
+AUTH_LDAP_GROUP_SEARCH = LDAPSearch("dc=et,dc=byu,dc=edu", ldap.SCOPE_SUBTREE)
+AUTH_LDAP_REQUIRE_GROUP = "cn=caedm_admin_level1,ou=caedm groups,ou=security groups,ou=caedm,ou=departments,dc=et,dc=byu,dc=edu"
+
+
+LOGIN_URL = "cabs_admin:index"
+LOGIN_REDIRECT_URL = 'cabs_admin:index'
 
 
 # Application definition
@@ -52,6 +105,9 @@ ROOT_URLCONF = 'admin_tools.urls'
 
 WSGI_APPLICATION = 'admin_tools.wsgi.application'
 
+TEMPLATE_CONTEXT_PROCESSORS = (
+    'django.core.context_processors.request',
+)
 
 # Database
 # https://docs.djangoproject.com/en/1.7/ref/settings/#databases
@@ -93,3 +149,25 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/1.7/howto/static-files/
 
 STATIC_URL = '/static/'
+
+#A patch to make django-auth-ldap work with Active Directory with direct bind
+from django_auth_ldap import backend
+
+def monkey(self, password):
+    """
+    Binds to the LDAP server with the user's DN and password. Raises
+    AuthenticationFailed on failure.
+    """
+    if self.dn is None:
+        raise self.AuthenticationFailed("failed to map the username to a DN.")
+    try:
+        sticky = self.settings.BIND_AS_AUTHENTICATING_USER
+        self._bind_as(self.dn, password, sticky=sticky)
+        #MonkeyPatch:
+        if sticky and self.settings.USER_SEARCH:
+            self._search_for_user_dn()
+        #Patched
+    except ldap.INVALID_CREDENTIALS:
+        raise self.AuthenticationFailed("user DN/password rejected by LDAP server.")
+
+backend._LDAPUser._authenticate_user_dn = monkey

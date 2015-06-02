@@ -4,6 +4,7 @@ from cabs_admin import views
 
 urlpatterns = patterns('',
     url(r'^$', views.index, name='index'),
+    url(r'^/logout/$', views.logoutView, name='logout'),
     url(r'^machines/$', views.machinesPage, name='machinesPage'),
     url(r'^machines/submit/$', views.setMachines, name='setMachines'),
     url(r'^machines/toggle/$', views.toggleMachines, name='toggleMachines'),
