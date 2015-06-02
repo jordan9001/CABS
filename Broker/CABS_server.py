@@ -121,7 +121,7 @@ class HandleClient(LineOnlyReceiver):
                 print "###################################" + settings.get('RGS_Version')
                 logger.debug('User {0} at {1} is using RGS {2}'.format(request[1], self.clientAddr, request[-1]))
                 if request[-1] < settings.get('RGS_Version'):
-                    self.transport.write("Err:Sorry, your RGS reciever is out of date, it should be at least {0}".format(settings.get('RGS_Version')
+                    self.transport.write("Err:Sorry, your RGS reciever is out of date, it should be at least {0}".format(settings.get('RGS_Version')))
                     self.transport.loseConnection()
             logger.info('User {0} requested pool info from {1}'.format(request[1],self.clientAddr))
             #authenticate_user
@@ -458,8 +458,8 @@ class MySQLHandler(logging.Handler):
         logging.Handler.__init__(self)
 
     def emit(self, record):
-        querystring = "INSERT INTO log VALUES(NOW(), %s, %s)"
-        r = dbpool.runQuery(querystring, (record.levelname, str(record.getMessage())))
+        querystring = "INSERT INTO log VALUES(NOW(), %s, %s, DEFAULT)"
+        r = dbpool.runQuery(querystring, (str(record.getMessage()), record.levelname))
         
 
 def setLogging():

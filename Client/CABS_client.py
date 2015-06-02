@@ -135,9 +135,7 @@ def showError(errortext):
         message = errortext.split(':',1)[1]
     else:
         message = "Unexpected Error."
-    
-    dlg = wx.MessageDialog(self, message, 'Error', wx.OK | wx.ICON_ERROR)
-    dlg.ShowModal()
+    return message
 
 
 class MainPage(wx.Panel):
@@ -815,9 +813,13 @@ class MainWindow(wx.Frame):
                 pools = getPools(username, password, server, port)
                 self.poolDialog(pools, username, password, server, port)
             except ServerError as e:
-                showError(e[0])
+                message = showError(e[0])
+                dlg = wx.MessageDialog(self, message, 'Error', wx.OK | wx.ICON_ERROR)
+                dlg.ShowModal()
             except:
-                showError("pools")
+                message = showError("pools")
+                dlg = wx.MessageDialog(self, message, 'Error', wx.OK | wx.ICON_ERROR)
+                dlg.ShowModal()
         
         elif e.GetId() == ID_SAVE_BUTTON:
             #save settings, which will be loaded automatically at the start with load(false), once we get it goin
@@ -840,15 +842,21 @@ class MainWindow(wx.Frame):
             try:
                 machine = getMachine(username, password, poolchoice, server, port)
             except ServerError as e:
-                showError(e[0])
+                message = showError(e[0])
+                dlg = wx.MessageDialog(self, message, 'Error', wx.OK | wx.ICON_ERROR)
+                dlg.ShowModal()
             except:
-                showError("machines")
+                message = showError("machines")
+                dlg = wx.MessageDialog(self, message, 'Error', wx.OK | wx.ICON_ERROR)
+                dlg.ShowModal()
             else:
                 #run the RGS command
                 print machine
                 self.runCommand(username, password, machine, port)
         else:
-            showError("machines")
+            message = showError("machines")
+            dlg = wx.MessageDialog(self, message, 'Error', wx.OK | wx.ICON_ERROR)
+            dlg.ShowModal()
 
     def runCommand(self, username, password, machine, port):
         if settings.get("RGS_Options") == 'True':
