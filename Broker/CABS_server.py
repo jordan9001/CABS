@@ -116,12 +116,12 @@ class HandleClient(LineOnlyReceiver):
         #We can receieve 2 types of lines from a client, pool request (pr), machine request(mr)
         request = line.split(':')
         if request[0].startswith('pr'):
-            if request[0].endswith('v') and settings.get('RGS_Version') != 'False':
+            if request[0].endswith('v') and settings.get('RGS_Ver_Min') != 'False':
                 #check version
-                print "###################################" + settings.get('RGS_Version')
+                print "###################################" + settings.get('RGS_Ver_Min')
                 logger.debug('User {0} at {1} is using RGS {2}'.format(request[1], self.clientAddr, request[-1]))
-                if request[-1] < settings.get('RGS_Version'):
-                    self.transport.write("Err:Sorry, your RGS reciever is out of date, it should be at least {0}".format(settings.get('RGS_Version')))
+                if request[-1] < settings.get('RGS_Ver_Min'):
+                    self.transport.write("Err:Sorry, your RGS reciever is out of date, it should be at least {0}".format(settings.get('RGS_Ver_Min')))
                     self.transport.loseConnection()
             logger.info('User {0} requested pool info from {1}'.format(request[1],self.clientAddr))
             #authenticate_user
@@ -431,8 +431,8 @@ def readConfigFile():
         settings["SSL_Priv_Key"] = 'None'
     if not settings.get("SSL_Cert"):
         settings["SSL_Cert"] = 'None'
-    if not settings.get("RGS_Version"):
-        settings["RGS_Version"] = 'False'
+    if not settings.get("RGS_Ver_Min"):
+        settings["RGS_Ver_Min"] = 'False'
     if not settings.get("Verbose_Out"):
         settings["Verbose_Out"] = 'False'
     if not settings.get("Log_Amount"):

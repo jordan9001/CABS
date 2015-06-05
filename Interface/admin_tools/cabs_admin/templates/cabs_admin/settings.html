@@ -39,7 +39,7 @@
         <option value="Auth_Postfix" {% if option_choosen == 'Auth_Postfix' %} selected {% endif %}>Authentication Postfix String</option>
         <option value="Auth_Usr_Attr" {% if option_choosen == 'Auth_Usr_Attr' %} selected {% endif %}>Authentication User Attribute</option>
         <option value="Auth_Grp_Attr" {% if option_choosen == 'Auth_Grp_Attr' %} selected {% endif %}>Authentication Group Attribute</option>
-        <option value="RGS_Version" {% if option_choosen == 'RGS_Version' %} selected {% endif %}>Minimum RGS Version</option>
+        <option value="RGS_Ver_Min" {% if option_choosen == 'RGS_Ver_Min' %} selected {% endif %}>Minimum RGS Version</option>
     </select>
 </form>
 {% if option_choosen %}
@@ -104,7 +104,7 @@
             <input type="text" name="value">
             <p>For LDAP or Active Directory, this is used as the attribute for groups.
             </br>For LDAP or Active Directory you may want something like: memberOf</p>
-        {% elif option_choosen == 'RGS_Version' %}
+        {% elif option_choosen == 'RGS_Ver_Min' %}
             <label>Specify an RGS version.</label>
             <input type="text" name="value" title="RGS version number" pattern="^\d+.\d+.\d+$">
             <p>This should be the lowest version of RGS you are willing to connect with.

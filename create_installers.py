@@ -9,13 +9,72 @@ except:
 #This is a installer creater, having the main directory downloaded, it can create a system according to your choosen settings.
 #Is is for unix, but can create Windows installers
 #It uses curses, to look cool
+########### SETTINGS ############
+class Settings(object):
+    #Handles giving out settings, and keeping things consistant.
+    s = [
+                ["Max_Clients", "62", "Maximum Client Connections", "The maximum number of client connections at one time.\nAfter that it will force others to wait.\nIf 'None' is specified, there will be no set maximum.", r"^((\d+)|(None))$"],
+                ["Client_Port", "18181", "Client Port", "The port that the Broker will use to listen for Client connections.", r"^\d{3,5}$"],
+                ["Agent_Port", "18182", "Agent Port", "The port that the Broker will use to listen for Agent connections.", r"^\d{3,5}$"],
+                ["Use_Agents", "True", "Use Agents", "This should be True, it allows Agents to connect to the Server.", r"^((True)|(False))$"],
+                ["SSL_Priv_Key", "privkey.pem", "Broker Private Key", "The Name of the Sever's Private Key for ssl authentication.\nIt should be 'None' or a filename ending in '.pem'\nIf this is set to 'None', then SSL will not be used.", r"^((\w+.pem)|(None))$"],
+                ["SSL_Cert", "cacert.pem", "Broker Self-Signed Certificate", "The Name of the Sever's key certificates for ssl authentication.\nIt should be 'None' or a filename ending in '.pem'\nIf this is set to 'None', then SSL will not be used.", r"^((\w+.pem)|(None))$"],
+                ["Database_Addr", "127.0.0.1", "MySQL Server Address", "The address of the MySQL server the Broker and Interface will use.\nIf the Broker and the Database will be installed on the same machine, keep the default.",r""],
+                ["Database_Port", "3306", "MySQL Port", "The port number that the MySQL server runs on.", r"^\d{3,5}$"],
+                ["Database_Usr", "CABS", "MySQL Username", "The username for the Broker to access the MySQL database.\nThis should be changed from the default value, and kept private.", r"^\w+$"],
+                ["Database_Pass", "BACS", "MySQL Password", "The password for the Broker to access the MySQL password.\nThis should be changed from the default value, and kept private.", r"^\w+$"],
+                ["Database_Name", "test", "Database Name", "The CABS Database name on the MySQL server that the Broker will access.", r"^\w+$"],
+                ["Reserve_Time", "360", "Machine Reserve Time", "The amount of time, that the Broker will keep a machine reserved.\nThis must be longer than the Agent's Interval, usually by 2 or 3 times.\nThis value is in seconds.", r"^\d{2,9}$"],
+                ["Timeout_Time", "540", "Machine Timeout Time", "The time the Broker will wait until it marks a machine as inactive.\nThis must be longer that Reserve Time.\nThis is in seconds.", r"^\d{2,9}$"],
+                ["Use_Blacklist", "True", "Use The Blacklist", "Refuse to connect with the addresses in the Blacklist.\n'True' or 'False'", r"^((True)|(False))$"],
+                ["Auto_Blacklist", "False", "Automatically Blacklist", "Automatically add addresses to the Blacklist if too many connections per minute.", r"^((True)|(False))$"],
+                ["Auto_Max", "300", "Maximum Connections per Minute", "Applies if Auto Blacklist is True.\nThe number of times in a minute an address can connect before being blacklisted.", r"^\d+$"],
+                ["Auth_Server", "None", "Authentication Server", "An LDAP or Active Directory server address.\nIf 'None' is specified, then no authentication will be required.", r""],
+                ["Auth_Prefix", "", "Distinguished Name prefix", "The prefix before the username inorder to build the DN.\nFor Active Directory you might want something like 'DOMAIN\\'\nFor LDAP you may want something like 'cn='", r""],
+                ["Auth_Postfix", "", "Distinguished Name postfix", "The postfix after the username inorder to build the DN.\nFor Active Directory you might want something like '@mysite.org'\nFor LDAP you might want something like ',ou=accounts,dc=mysite,dc=org'", r""],
+                ["Auth_Base", "None", "Request Base", "The Base for the LDAP or Active Directory request.\nUsually something like 'dc=mysite,dc=org'", r""],
+                ["Auth_Usr_Attr", "None", "User Attribute", "The LDAP or Active Directory user attribute.", r""],
+                ["Auth_Grp_Attr", "None", "Group Attribute", "The LDAP or Active Direcory group attribute.", r""],
+                ["RGS_Ver_Min", "False", "RGS Minimum Version", "The earliest RGS version that can connect.\nIf you are not using RGS, put 'False'", r"^((False)|(\d+.\d+.\d+))$"],
+                ["Verbose_Out", "False", "Output to Screen", "Output not only to the log, but also to stdout.", r"^((True)|(False))$"],
+                ["Log_Amount", "3", "Verbosity Level", "The amount written out to the log database.\nA number from 0(none) to 4(highest).", r"^\d$"],
+                
+            ]
+    def finds(self, var_name):
+        for item in self.s:
+            if item[0] == var_name:
+                return item
+        raise Exception
 
-########### PACKAGE #############
+    def getSettings(self, which):
+        #Returns settings in: settings( group( setting[var_name, default, tag, description, regex],),)
+        if which == "Server":
+            settings = (
+                        (self.finds("Max_Clients"),self.finds("Client_Port"),self.finds("Agent_Port"),self.finds("SSL_Priv_Key"),self.finds("SSL_Cert"),self.finds("RGS_Ver_Min"),self.finds("Verbose_Out"),self.finds("Log_Amount")),
+                        (self.finds("Database_Addr"),self.finds("Database_Port"),self.finds("Database_Usr"),self.finds("Database_Pass"),self.finds("Database_Name")),
+                        (self.finds("Use_Agents"),self.finds("Reserve_Time"),self.finds("Timeout_Time"),self.finds("Use_Blacklist"),self.finds("Auto_Blacklist"),self.finds("Auto_Max")),
+                        (self.finds("Auth_Server"),self.finds("Auth_Prefix"),self.finds("Auth_Postfix"),self.finds("Auth_Base"),self.finds("Auth_Usr_Attr"),self.finds("Auth_Grp_Attr")),
+                       )
+            return settings
+        elif which == "Interface":
+            pass
+        elif which == "Client-Windows":
+            pass
+        elif which == "Client-Linux":
+            pass
+        elif which == "Agent-Windows":
+            pass
+        elif which == "Agent-Linux":
+            pass
+        else:
+            raise Exception
+
+########### INSTALL  ############
 
 ########### TUI PAGES ###########
-def settings_screen(choice):
+def settings_screen(choice, settingsobj):
     #read default settings
-    settingsgroups = ((["Group1Setting 1", "value1", "G1Tag1", "Must say \"Jordan is Awesome\"", r"^Jordan is Awesome$"],["Group2Setting 2", "value2", "G1Tag2", "Any whole number", r"^\d$"]),(["Group2Setting 1", "value1", "G2Tag1", "No space", r"^\w*$"],["Group2Setting 2", "value2", "G2Tag2", "Explination2", "*"]))
+    settingsgroups = settingsobj.getSettings(choice)
     initial = True
     pos = 1
     group = 0
@@ -53,10 +112,9 @@ def settings_screen(choice):
                 if pos < len(settings):
                     settingsgroups[group][pos][1] = editSetting(settingsgroups[group][pos])
                 elif pos == len(settings):
+                    pos = 0;
                     group = group + 1
-    
-    #queue package to be made for choice
-                
+    #return settings to Settings class and your are done!
 
 def editSetting(setting):
     pos = 0
@@ -68,7 +126,7 @@ def editSetting(setting):
     
     while(True):
         createSettingsScreen(setting[2], False, pos)
-        y = 2
+        y = 3
         for line in setting[3].split('\n'):
             stdscr.addstr(y, 3, line)
             y = y+1
@@ -114,6 +172,12 @@ def editSetting(setting):
                 linepos = linepos - 1        
         elif c == curses.KEY_BACKSPACE or c == 8:
             newvalue = newvalue[:-1]
+            p = re.compile(setting[4])
+            m = p.match( newvalue )
+            if m:
+                regex_error = False
+            else:
+                regex_error = True
         else:
             p = re.compile(setting[4])
             try:
@@ -144,7 +208,7 @@ def createSettingsScreen(title, initial, pos=1, settingsgroup=None):
     elif settingsgroup is not None:
         #show the list in a scrollable style, with selected one in middle
         ytop = 2
-        ybottom = size[0]-6
+        ybottom = size[0]-3
         ctr = size[0]/2
         y = 0
         #show selected lines
@@ -206,7 +270,7 @@ def title_screen(pos=0,options=None):
     stdscr.refresh()
     return options
 
-def setTitle():
+def runInterface():
     pos = 0;
     options = None
     while(True):
@@ -229,9 +293,12 @@ def setTitle():
                 break
             elif pos == len(options)+1:
                 return
+    #set settings for all the to be made packages
+    settingsobj = Settings()
     for function in options:
         if function[1]:
-            settings_screen(function[0])
+            settings_screen(function[0], settingsobj)
+    #now run the packager/installer creater for each
 
 def start(screen):
     global stdscr
@@ -258,7 +325,7 @@ def main_tui(screen):
         curses.init_pair(3,0,3)#pair 3 is black on yellow (highlight/decoration)
         curses.init_pair(2,0,7)#pair 2 is black on white (text input)
         curses.init_pair(1,1,0)#pair 1 is red on black (warning/error)
-        setTitle()
+        runInterface()
     except Exception as e:
         close()
         error = True
