@@ -12,7 +12,8 @@ except:
 ########### SETTINGS ############
 class Settings(object):
     #Handles giving out settings, and keeping things consistant.
-    s = [
+    s = (
+                #Broker or Shared .conf
                 ["Max_Clients", "62", "Maximum Client Connections", "The maximum number of client connections at one time.\nAfter that it will force others to wait.\nIf 'None' is specified, there will be no set maximum.", r"^((\d+)|(None))$"],
                 ["Client_Port", "18181", "Client Port", "The port that the Broker will use to listen for Client connections.", r"^\d{3,5}$"],
                 ["Agent_Port", "18182", "Agent Port", "The port that the Broker will use to listen for Agent connections.", r"^\d{3,5}$"],
@@ -38,8 +39,26 @@ class Settings(object):
                 ["RGS_Ver_Min", "False", "RGS Minimum Version", "The earliest RGS version that can connect.\nIf you are not using RGS, put 'False'", r"^((False)|(\d+.\d+.\d+))$"],
                 ["Verbose_Out", "False", "Output to Screen", "Output not only to the log, but also to stdout.", r"^((True)|(False))$"],
                 ["Log_Amount", "3", "Verbosity Level", "The amount written out to the log database.\nA number from 0(none) to 4(highest).", r"^\d$"],
-                
-            ]
+                ["Log_Keep", "600", "Log History Limit", "The number of Log items to keep in history after pruning.", r"^\d+"],
+                ["Log_Time", "1800", "Log Prune Interval", "How long between deleting excess off of the Log, in seconds.", r"^\d+"],
+                #Broker Installation
+                ["Broker_Distro", "Debian", "Linux Distribution", "If you are using this installer, you must use: Debian (or something close).", r"^Debian$"],
+                #Interface Installation
+                ["Create_Server", "True", "Create New Apache Webserver", "Create a new apache2 webserver from script, installing all the proper components.\nIf this is False, the installer will just give you a Django application folder.", r"^((True)|(False))$"],
+                ["Interface_Distro", "Debian", "Linux Distribution", "If you are using this installer, you must use: Debian (or something close).", r"^Debian$"],
+                #Client or Shared .conf
+                ["Host_Addr", "localhost", "Broker Address", "The network address for the Broker.", r""],
+                ["Net_Domain", "", "The Network Domain", "The domain for your network.\nLeave this blank if your machines are on many networks.", r""],
+                ["Command-Win", "", "Client Command", "The command that will be run by the client when it receives an address.\nIf use RGS is true, this does nothing.\nTo following variables are available: {user} {address} {password} and {port}\nExample: C:\PuTTY\putty.exe -ssh {user{@{address} -pw {password}\nThis can be changed during Client Install.", r""],
+                ["Command-Lin", "", "Client Command", "The command that will be run by the client when it receives an address.\nIf use RGS is true, this does nothing.\nTo following variables are available: {user} {address} {password} and {port}\nExample: C:\PuTTY\putty.exe -ssh {user{@{address} -pw {password}\nThis can be changed during Client Install.", r""],
+                ["RGS_Options", "True", "Use RGS", "Have CABS Client run an RGS connection.", r"^((True)|(False))$"],
+                ["RGS_Location", "/opt/hpremote/rgreceiver/rgreceiver.sh", "The RGS executable fullpath", "This should be the full pathname to rgreceiver.sh or rgreceiver.exe\nThis only matters if Use RGS is True", r""],
+                ["RGS_Version", "False", "Check RGS Version", "Have the Client send in the RGS version number to the Broker, to make sure it is up to date.", r"^((True)|(False))$"],
+                #Agent .conf
+                ["Interval", "120", "Heartbeat Interval", "How often the Agent reports to the Server in seconds.\nMust be less than Broker's Reserve_Time.", r"^\d+$"],
+                ["Hostname", "None", "Fixed Hostname", "The Agent Machine's Hostname.\nIf 'None' then the hostname will be determined by the Agent.\nThis can be changed during Agent Install.", r""],
+                ["Directory", "/CABS/", "Install Directory", "The Agent's default install directory.\nThis can be changed during Agent Install.", r""],
+            )
     def finds(self, var_name):
         for item in self.s:
             if item[0] == var_name:
@@ -50,24 +69,50 @@ class Settings(object):
         #Returns settings in: settings( group( setting[var_name, default, tag, description, regex],),)
         if which == "Server":
             settings = (
-                        (self.finds("Max_Clients"),self.finds("Client_Port"),self.finds("Agent_Port"),self.finds("SSL_Priv_Key"),self.finds("SSL_Cert"),self.finds("RGS_Ver_Min"),self.finds("Verbose_Out"),self.finds("Log_Amount")),
+                        (self.finds("Broker_Distro"),self.finds("Max_Clients"),self.finds("Client_Port"),self.finds("Agent_Port"),self.finds("SSL_Priv_Key"),self.finds("SSL_Cert"),self.finds("RGS_Ver_Min"),self.finds("Verbose_Out"),self.finds("Log_Amount")),
+                        
                         (self.finds("Database_Addr"),self.finds("Database_Port"),self.finds("Database_Usr"),self.finds("Database_Pass"),self.finds("Database_Name")),
+
                         (self.finds("Use_Agents"),self.finds("Reserve_Time"),self.finds("Timeout_Time"),self.finds("Use_Blacklist"),self.finds("Auto_Blacklist"),self.finds("Auto_Max")),
+
                         (self.finds("Auth_Server"),self.finds("Auth_Prefix"),self.finds("Auth_Postfix"),self.finds("Auth_Base"),self.finds("Auth_Usr_Attr"),self.finds("Auth_Grp_Attr")),
-                       )
-            return settings
+                        )
         elif which == "Interface":
-            pass
+            settings = (
+                        (self.finds("Create_Server"),self.finds("Interface_Distro")),
+                        
+                        (self.finds("Database_Addr"),self.finds("Database_Port"),self.finds("Database_Usr"),self.finds("Database_Pass"),self.finds("Database_Name")),
+                        )
         elif which == "Client-Windows":
-            pass
+            settings = (
+                        (self.finds("Host_Addr"),self.finds("Net_Domain"),self.finds("Client_Port"),self.finds("SSL_Cert")),
+                        
+                        (self.finds("Command-Win"),self.finds("RGS_Options"),self.finds("RGS_Location"),self.finds("RGS_Version")),
+                        )
         elif which == "Client-Linux":
-            pass
+            settings = (
+                        (self.finds("Host_Addr"),self.finds("Net_Domain"),self.finds("Client_Port"),self.finds("SSL_Cert")),
+                        
+                        (self.finds("Command-Lin"),self.finds("RGS_Options"),self.finds("RGS_Location"),self.finds("RGS_Version")),
+                        )
         elif which == "Agent-Windows":
-            pass
+            settings = (
+                        (self.finds("Interval"),self.finds("Hostname"),self.finds("Directory")),
+                        )
         elif which == "Agent-Linux":
-            pass
+            settings = (
+                        (self.finds("Interval"),self.finds("Hostname"),self.finds("Directory")),
+                        )
         else:
             raise Exception
+        
+        return settings
+    
+    def setSettings(self, changedItems):
+        for item in changedItems:
+            for original in self.s:
+                if item[0] == original[0]:
+                    original[1] = item[1]
 
 ########### INSTALL  ############
 
@@ -75,46 +120,34 @@ class Settings(object):
 def settings_screen(choice, settingsobj):
     #read default settings
     settingsgroups = settingsobj.getSettings(choice)
-    initial = True
     pos = 1
     group = 0
+    changedsettings = ()
     while(group < len(settingsgroups)):
-        if not initial:
-            settings = settingsgroups[group]
-        else:
-            settings = None
-        createSettingsScreen(choice.upper(), initial, pos, settings)
+        settings = settingsgroups[group]
+        createSettingsScreen(choice.upper(), pos, settings)
         stdscr.refresh()
         c = stdscr.getch()
-        if initial:
-            #check if they want to use all the defaults
-            if c == curses.KEY_DOWN or c == curses.KEY_UP:
-                pos = 1 if (pos==0) else 0
-            elif c == curses.KEY_ENTER or c == ord(' ') or c == 10 or c == 11 or c == 13:
-                if pos==1:
-                    pos = 0;
-                    initial = False
-                else:
-                    break;
-        else:
-            #serve up a group of settings
-            if c == curses.KEY_UP:
-                if pos > 0:
-                    pos = pos - 1
-                else:
-                    pos = len(settings)
-            elif c == curses.KEY_DOWN:
-                if pos < len(settings):
-                    pos = pos + 1
-                else:
-                    pos = 0
-            elif c == curses.KEY_ENTER or c == ord(' ') or c == 10 or c == 11 or c == 13:
-                if pos < len(settings):
-                    settingsgroups[group][pos][1] = editSetting(settingsgroups[group][pos])
-                elif pos == len(settings):
-                    pos = 0;
-                    group = group + 1
+        #serve up a group of settings
+        if c == curses.KEY_UP:
+            if pos > 0:
+                pos = pos - 1
+            else:
+                pos = len(settings)
+        elif c == curses.KEY_DOWN:
+            if pos < len(settings):
+                pos = pos + 1
+            else:
+                pos = 0
+        elif c == curses.KEY_ENTER or c == ord(' ') or c == 10 or c == 11 or c == 13:
+            if pos < len(settings):
+                settingsgroups[group][pos][1] = editSetting(settingsgroups[group][pos])
+                changedsettings = changedsettings + (settingsgroups[group][pos],)
+            elif pos == len(settings):
+                pos = 0;
+                group = group + 1
     #return settings to Settings class and your are done!
+    settingsobj.setSettings(changedsettings)
 
 def editSetting(setting):
     pos = 0
@@ -125,7 +158,7 @@ def editSetting(setting):
     newvalue = ""
     
     while(True):
-        createSettingsScreen(setting[2], False, pos)
+        createSettingsScreen(setting[2], pos)
         y = 3
         for line in setting[3].split('\n'):
             stdscr.addstr(y, 3, line)
@@ -193,7 +226,7 @@ def editSetting(setting):
 
     return value
 
-def createSettingsScreen(title, initial, pos=1, settingsgroup=None):
+def createSettingsScreen(title, pos=1, settingsgroup=None):
     title = " "+title+" "
     stdscr.clear()
     size = stdscr.getmaxyx()
@@ -201,11 +234,7 @@ def createSettingsScreen(title, initial, pos=1, settingsgroup=None):
     stdscr.border(' ',' ',' ',' ',' ',' ',' ',' ')
     stdscr.addstr(2, (size[1]/2)-(len(title)/2), title)
     stdscr.attroff(curses.color_pair(3))
-    if initial:
-        stdscr.addstr((size[0]/2)-1, (size[1]/2)-13, "Use Default Configuration?")
-        stdscr.addstr((size[0]/2), (size[1]/2)-7, " USE DEFAULTS ", curses.color_pair(3) if (0==pos) else curses.color_pair(0))
-        stdscr.addstr((size[0]/2)+1, (size[1]/2)-7, " SET SETTINGS ", curses.color_pair(3) if (1==pos) else curses.color_pair(0))
-    elif settingsgroup is not None:
+    if settingsgroup is not None:
         #show the list in a scrollable style, with selected one in middle
         ytop = 2
         ybottom = size[0]-3

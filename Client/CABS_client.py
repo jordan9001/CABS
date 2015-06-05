@@ -42,15 +42,20 @@ def readConfigFile():
                         val = ''
                 settings[key] = val
         f.close()
-        #insert default settings for all not specified
-        if not settings.get("Host_Addr"):
-                settings["Host_Addr"] = 'localhost'
-        if not settings.get("Client_Port"):
-                settings["Client_Port"] = 18181
-        if not settings.get("SSL_Cert"):
-                settings["SSL_Cert"] = None
+    #insert default settings for all not specified
+    if not settings.get("Host_Addr"):
+        settings["Host_Addr"] = 'localhost'
+    if not settings.get("Client_Port"):
+        settings["Client_Port"] = 18181
+    if not settings.get("SSL_Cert"):
+        settings["SSL_Cert"] = None
     if not settings.get("Command"):
-        settings["Command"] = None
+        if settings.get("Command-Win"):
+            settings["Command"] = settings.get("Command-Win")
+        elif settings.get("Command-Lin"):
+            settings["Command"] = settings.get("Command-Lin")
+        else:
+            settings["Command"] = None
     if not settings.get("RGS_Options"):
         settings["RGS_Options"] = False
     if not settings.get("RGS_Location"):

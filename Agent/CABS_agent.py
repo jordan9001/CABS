@@ -92,8 +92,6 @@ def readConfigFile():
         settings["SSL_Cert"] = None
     if not settings.get("Interval"):
         settings["Interval"] = 120
-    if not settings.get("Con_Type"):
-        settings["Con_Type"] = None
     if not settings.get("Hostname"):
         settings["Hostname"] = None
     if not settings.get("Directory"):

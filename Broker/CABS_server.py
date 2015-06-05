@@ -437,6 +437,10 @@ def readConfigFile():
         settings["Verbose_Out"] = 'False'
     if not settings.get("Log_Amount"):
         settings["Log_Amount"] = '4'
+    if not settings.get("Log_Keep"):
+        settings["Log_Keep"] = '500'
+    if not settings.get("Log_Time"):
+        settings["Log_Time"] = '1800'
 
 def readDatabaseSettings():
     #This needs to be a "blocked" call to ensure order, it can't be asynchronous.
@@ -460,7 +464,10 @@ class MySQLHandler(logging.Handler):
     def emit(self, record):
         querystring = "INSERT INTO log VALUES(NOW(), %s, %s, DEFAULT)"
         r = dbpool.runQuery(querystring, (str(record.getMessage()), record.levelname))
-        
+   
+def pruneLog():
+    querystring = "DELETE FROM log WHERE id <= (SELECT id FROM (SELECT id FROM log ORDER BY id DESC LIMIT 1 OFFSET %s)foo )"
+    r = dbpool.runQuery(querystring, (int(settings.get("Log_Keep")),))
 
 def setLogging():
     global logger
@@ -539,8 +546,10 @@ def main():
         getblacklist = task.LoopingCall(cacheBlacklist)
         #refresh blacklist every 15 minutes
         getblacklist.start(900)
-
-    
+    #Start Pruning log
+    if int(settings.get("Log_Amount")) != 0:
+        prune = task.LoopingCall(pruneLog)
+        prune.start(int(settings.get("Log_Time")))
     
     #Start Everything
     reactor.run()
