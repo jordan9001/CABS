@@ -1,0 +1,28 @@
+{% include "cabs_admin/header.html" %}
+
+<center>
+<div role="main">
+
+<div style="height: 3.3rem">
+<form action="{% url 'cabs_admin:historyPage' %}" method="get">
+{% if position >= 50 %}
+<button class="button" type="submit" name="position" value="{{position|add:"-50"}}" style="float: inherit">Previous 50</button>
+{% endif %}{% if logger_list|length >= 50 %}
+<button class="button" type="submit" name="position" value="{{position|add:"50"}}" style="float: inherit">Next 50</button>
+{% endif %}
+</form>
+</div>
+<table class="table_list">
+    <tr><td> Type </td><td> Message </td><td> Time </td></tr>
+    <tr></tr>
+{% for line in logger_list %}
+    <tr>
+        <td>{{line.msg_type}}</td>
+        <td>{{line.message | truncatechars:150 }}</td>
+        <td>{{line.timestamp | date:"m/d H:i:s"}}</td>
+    </tr>
+{% endfor %}
+</table>
+
+</div>
+</center>

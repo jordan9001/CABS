@@ -1,0 +1,167 @@
+#top {
+    background-color: #000;
+    background-repeat: repeat;
+    position: relative;
+    overflow: hidden;
+    margin: 0px;
+    z-index: 0;
+    padding: 10px 0px 6px;
+}
+
+#sub-banner {
+    padding: 1px 20px;
+    background-color: #D5C618;
+    background-repeat: repeat;
+}
+
+#menu {
+    float: right;
+    color: white;
+    
+}
+
+.container {
+    margin: 0px auto;
+    max-width: 1400px;
+    padding: 0px 5%;
+}
+
+.logo {
+    color: white; 
+    text-decoration: none;
+    font-family: "Roboto",Corbel,Avenir,"Lucida Grande","Lucida Sans",sans-serif;
+    font-size: 3.3rem;
+    font-weight: 300;
+    margin: 0.35em 0px;
+    padding: 1px 0px 6px;
+}
+
+.nav {
+    display: block;
+    position: relative;
+    right: 50%;
+    float: left;
+    padding: 9px 15px;
+    text-decoration: none;
+    display: block;
+    text-transform: uppercase;
+    font-weight:700;
+    line-height: 16px;
+    font-family: "Roboto",Corbel,Avenir,"Lucida Grande","Lucida Sans",sans-serif;
+}
+
+.table_list {
+    background-color: white;
+    color: black;
+    width: 75%;
+}
+
+.table_list tr:nth-child(even) {
+    background-color: #E0E0E0;
+    color: black;
+    width: 75%;
+}
+
+.table_list tr:first-of-type {
+    background-color: black;
+    color: white;
+    font-family: "Roboto",Corbel,Avenir,"Lucida Grande","Lucida Sans",sans-serif;
+    font-weight: 700;
+}
+
+.main_choice {
+    font-size:1.2rem;
+}
+
+.button {
+    margin: 10px 1px;
+    background: #D5C618;
+    color: #000;
+    cursor: pointer;
+    border-radius: 3px;
+    border: 0px;
+    text-align: center;
+    padding: 0.6rem 1.2rem;
+    font-size: 1.0rem;
+    font-weight: 700;
+    text-transform: uppercase;
+}
+
+.button:active, .button:focus, .button:hover {
+    opacity: 0.90;
+}
+
+.rm {
+    float: right;
+    margin: 1px 1px 1px 3px;
+    padding: 0.1rem;
+}
+
+ul[role="navigation"] {
+    list-style: none;
+    position: relative;
+    float: left;
+    display: block;
+    left: 50%;
+}
+
+h1 {
+    color: #000;
+    letter-spacing: -1px;
+    font-weight: 300;
+    text-decoration: none;
+    font-family: "Roboto",Corbel,Avenir,"Lucida Grande","Lucida Sans",sans-serif;
+    font-size: 2.7rem;
+    margin: 0.35em 0px;
+    padding: 1px 0px 6px;
+}
+
+h2 {
+    font-size: 1.5rem;
+    font-weight:700;
+}
+
+p {
+    font-size: 1.0rem;
+    line-height: 1.5rem;
+}
+
+select {
+    border: 0;
+    background-color: #EBEBEB;
+    border-radius: 0;
+    padding: 5px;
+    font-size: 1.0rem;
+}
+
+input {
+    background-color: #EBEBEB;
+    border: 0;
+    border-radius: 0;
+    padding: 5px;
+    font-size: 1.0rem;
+}
+
+html, body {
+    font-family: "Roboto",Corbel,Avenir,"Lucida Grande","Lucida Sans",sans-serif;
+    font-size: 90%;
+    margin:0;
+    padding:0;
+}
+
+div[role="main"] {
+    padding: 9px 5% 30px;
+}
+
+a {
+    color: inherit;
+    text-decoration: inherit;
+}
+
+a:visited {
+    opacity: 0.9;
+}
+
+a:active, a:focus, a:hover {
+    opacity: 0.8;
+}

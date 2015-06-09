@@ -1,0 +1,13 @@
+Information on how to update/distribute CABS
+create_installers
+    The top level holds a script called create_installers that will work on a unix machine, and will create the installers needed for the other systems.
+    This is a python script that uses the curses library.
+    It is built with pyinstaller to be an executable
+
+Source holds all of CABS, and their source files. In some of the subdirectories there are build folders which contain executables or os specific installation files.
+    create_installers knows where to find these.
+    if these need to be updated to match the source code:
+        The windows installers were created with the .nsi files, using NSIS
+        The windows executables were created with pyinstaller on a windows machine
+        The linux installers are just bash scripts
+        The linux executables were created with pyinstaller on a linux machine
