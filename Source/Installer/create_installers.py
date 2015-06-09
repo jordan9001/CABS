@@ -62,7 +62,8 @@ class Settings(object):
                 #Agent .conf
                 ["Interval", "120", "Heartbeat Interval", "How often the Agent reports to the Server in seconds.\nMust be less than Broker's Reserve_Time.", r"^\d+$"],
                 ["Hostname", "None", "Fixed Hostname", "The Agent Machine's Hostname.\nIf 'None' then the hostname will be determined by the Agent.\nThis can be changed during Agent Install.", r""],
-                ["Directory", "/CABS/", "Install Directory", "The Agent's default install directory.\nThis can be changed during Agent Install.", r""],
+                ["Directory-Win", "\\Program Files\\CABS\\Agent\\", "Install Directory", "The Agent's default install directory.\nYou probably shouldn't change this.", r""],
+                ["Directory-Lin", "/usr/lib/cabs/agent/", "Install Directory", "The Agent's default install directory.\nYou probably shouldn't change this.", r""],
             )
     def finds(self, var_name):
         for item in self.s:
@@ -106,11 +107,11 @@ class Settings(object):
                         )
         elif which == "Agent_Windows":
             settings = (
-                        (self.finds("Interval"),self.finds("Hostname"),self.finds("Directory")),
+                        (self.finds("Interval"),self.finds("Hostname"),self.finds("Directory-Win")),
                         )
         elif which == "Agent_Linux":
             settings = (
-                        (self.finds("Interval"),self.finds("Hostname"),self.finds("Directory")),
+                        (self.finds("Interval"),self.finds("Hostname"),self.finds("Directory-Lin")),
                         )
         else:
             raise Exception
@@ -136,7 +137,8 @@ class Settings(object):
                 confstring += "##{varname}\n".format(varname=item[2])
                 for line in item[3].split('\n'):
                     confstring += "#{infoline}\n".format(infoline=line)
-                confstring += "{variable}:\t{value}\n\n".format(variable=item[0], value=item[1])
+                var = item[0].split('-')[0]
+                confstring += "{variable}:\t{value}\n\n".format(variable=var, value=item[1])
         return confstring
 
 ########### INSTALL  ############
@@ -163,25 +165,38 @@ def Client_Windows(settingsobj):
     conf = settingsobj.createConf("Client_Windows")
     with open(path+"/CABS_client.conf", 'w') as f:
         f.write(conf)
-    #move the .exe, the .ico, the Header.png, the cacerts.pem
-    copy2(base+"/Source/Client/build/win_client/CABS_client.exe", base+"/Install_CABS_Windows_Client/CABS_client.exe")
-    copy2(base+"/Source/Client/build/win_client/Icon.ico", base+"/Install_CABS_Windows_Client/Icon.ico")
-    copy2(base+"/Source/Client/Header.png", base+"/Install_CABS_Windows_Client/Header.png")
+    #move the installer and the cacerts.pem
+    copy2(base+"/Source/Client/build/win_client/Install_CABS_Client.exe", path+"/Install_CABS_Client.exe")
     sslcert = settingsobj.finds("SSL_Cert")[1]
     if sslcert != "None" and  os.path.isfile(base+"/Source/Shared/"+sslcert):
-        copy2(base+"/Source/Shared/"+sslcert, base+"/Install_CABS_Windows_Client/"+sslcert)
+        copy2(base+"/Source/Shared/"+sslcert, path+"/"+sslcert)
     
 
 def Client_Linux(settingsobj):
-    #This function makes the .conf, and moves all teh stuff into a nice tar.bz with a install script, and a readme
+    #This function makes the .conf, and moves all the stuff into a nice tar.bz with a install script, and a readme
     pass
 
 def Agent_Windows(settingsobj):
     #This function makes the .conf, and moves all the stuff into a nice zipped file with an installer and a readme
-    pass
+    #create directory
+    base = os.path.dirname(os.path.realpath(__file__))
+    path = base + "/Install_CABS_Windows_Agent"
+    
+    if not os.path.exists(path):
+        os.makedirs(path)
+    #write .conf
+    conf = settingsobj.createConf("Agent_Windows")
+    with open(path+"/CABS_agent.conf", 'w') as f:
+        f.write(conf)
+    #move the installer and the cacerts.pem
+    copy2(base+"/Source/Agent/build/win_agent/Install_CABS_Agent.exe", path+"/Install_CABS_Agent.exe")
+    copy2(base+"/Source/Agent/build/win_agent/win_agent_createtask.xml", path+"/win_agent_createtask.xml")
+    sslcert = settingsobj.finds("SSL_Cert")[1]
+    if sslcert != "None" and  os.path.isfile(base+"/Source/Shared/"+sslcert):
+        copy2(base+"/Source/Shared/"+sslcert, path+"/"+sslcert)
 
 def Agent_Linux(settingsobj):
-    #This function makes the .conf, and moves all teh stuff into a nice tar.bz with a install script, and a readme
+    #This function makes the .conf, and moves all the stuff into a nice tar.bz with a install script, and a readme
     pass
 
 ########### TUI PAGES ###########

@@ -24,14 +24,18 @@ def heartbeat():
         print userlist
 
     elif sys.platform.startswith("win"):
-        p = subprocess.Popen(settings.get("Directory")+"/PsLoggedon.exe -x -accepteula", stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell = True)
+        try:
+            p = subprocess.Popen(["C:\\Windows\\Sysnative\\query.exe","user"], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        except:
+            p = subprocess.Popen(["C:\\Windows\\system32\\query.exe","user"], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        
         output, err = p.communicate()
         userlist = set()
-        for line in output.split('\r\n'):
-            if line.startswith(' '):
-                userline = line.split("\\")[-1]
-                if userline.strip() != "ANONYMOUS LOGON" and userline.strip() != "LOCAL SERVICE":
-                    userlist.add(userline.strip())
+        for i in range(1,len(output.split('\r\n'))-1):
+            user = output.split('\r\n')[i].split()[0]
+            if user.startswith(">"):
+                user = user[1:]
+            userlist.add(user)
     else:
         #badbadnotgood
         #Unrecognized OS
