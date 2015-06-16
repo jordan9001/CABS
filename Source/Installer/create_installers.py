@@ -3,7 +3,8 @@
 import re
 import subprocess
 import os
-from shutil import copy2
+import zipfile
+from shutil import copy2, rmtree
 try:
     import curses
     tui = True
@@ -45,12 +46,15 @@ class Settings(object):
                 ["Log_Keep", "600", "Log History Limit", "The number of Log items to keep in history after pruning.", r"^\d+"],
                 ["Log_Time", "1800", "Log Prune Interval", "How long between deleting excess off of the Log, in seconds.", r"^\d+"],
                 #Broker Installation
-                ["Create_Database", "False", "Create a new Database on Broker Machine", "If this is 'True' then the Broker installer will create a database for it and the interface to use.", r"^((True)|(False))$"],
-                ["Broker_Distro", "Debian", "Linux Distribution", "If you are using this installer, you must use: Debian (or something close).", r"^Debian$"],
+                ["#Broker_Distro", "Debian", "Linux Distribution", "If you are using this installer, you must use: Debian (or something close).", r"^Debian$"],
+                ["#Create_SSL_Keys", "True", "Create a new SSL private key and certificate.", "If this is 'True', this script will create a new SSL private key and SSL certificate.\nNote, OpenSSL must be installed for this option.", r"^((True)|(False))$"],
+                ["#Cou_Name", "US", "Country Name", "The Country name for the SSL certificate", r"^[^/]{,2}$"],
+                ["#Org_Name", "", "Organization Name", "The Organization name for the SSL certificate", r"^[^/]*$"],
+                ["#Com_Name", "CABS_Server", "The Server's Name", "The Common name for the SSL certificate, usually the server name.", r"^[^/]+$"],
                 #Interface Installation
-                ["Interface_Group", "", "Admin Group", "The LDAP or Active Directory group that can access the Interface", r""],
-                ["Create_Server", "True", "Create New Apache Webserver", "Create a new apache2 webserver from script, installing all the proper components.\nIf this is False, the installer will just give you a Django application folder.", r"^((True)|(False))$"],
-                ["Interface_Distro", "Debian", "Linux Distribution", "If you are using this installer, you must use: Debian (or something close).", r"^Debian$"],
+                ["#Interface_Group", "", "Admin Group", "The LDAP or Active Directory group that can access the Interface", r""],
+                ["#Create_Server", "True", "Create New Apache Webserver", "Create a new apache2 webserver from script, installing all the proper components.\nIf this is False, the installer will just give you a Django application folder.", r"^((True)|(False))$"],
+                ["#Interface_Distro", "Debian", "Linux Distribution", "If you are using this installer, you must use: Debian (or something close).", r"^Debian$"],
                 #Client or Shared .conf
                 ["Host_Addr", "localhost", "Broker Address", "The network address for the Broker.", r""],
                 ["Net_Domain", "", "The Network Domain", "The domain for your network.\nLeave this blank if your machines are on many networks.", r""],
@@ -75,7 +79,7 @@ class Settings(object):
         #Returns settings in: settings( group( setting[var_name, default, tag, description, regex],),)
         if which == "Server":
             settings = (
-                        (self.finds("Broker_Distro"),self.finds("Max_Clients"),self.finds("Client_Port"),self.finds("Agent_Port"),self.finds("SSL_Priv_Key"),self.finds("SSL_Cert"),self.finds("RGS_Ver_Min"),self.finds("Verbose_Out"),self.finds("Create_Database")),
+                        (self.finds("#Broker_Distro"),self.finds("Max_Clients"),self.finds("Client_Port"),self.finds("Agent_Port"),self.finds("SSL_Priv_Key"),self.finds("SSL_Cert"),self.finds("RGS_Ver_Min"),self.finds("Verbose_Out")),
                         
                         (self.finds("Database_Addr"),self.finds("Database_Port"),self.finds("Database_Usr"),self.finds("Database_Pass"),self.finds("Database_Name")),
 
@@ -84,14 +88,16 @@ class Settings(object):
                         (self.finds("Auth_Server"),self.finds("Auth_Prefix"),self.finds("Auth_Postfix"),self.finds("Auth_Base"),self.finds("Auth_Usr_Attr"),self.finds("Auth_Grp_Attr")),
                         
                         (self.finds("Log_Amount"),self.finds("Log_Keep"),self.finds("Log_Time")),
+                        
+                        (self.finds("#Create_SSL_Keys"),self.finds("#Cou_Name"),self.finds("#Org_Name"),self.finds("#Com_Name")),
                         )
         elif which == "Interface":
             settings = (
-                        (self.finds("Create_Server"),self.finds("Interface_Distro")),
+                        (self.finds("#Create_Server"),self.finds("#Interface_Distro")),
                         
                         (self.finds("Database_Addr"),self.finds("Database_Port"),self.finds("Database_Usr"),self.finds("Database_Pass"),self.finds("Database_Name")),
                         
-                        (self.finds("Auth_Server"),self.finds("Auth_Prefix"),self.finds("Auth_Postfix"),self.finds("Auth_Base"),self.finds("Auth_Usr_Attr"),self.finds("Auth_Grp_Attr"), self.finds("Interface_Group")),
+                        (self.finds("Auth_Server"),self.finds("Auth_Prefix"),self.finds("Auth_Postfix"),self.finds("Auth_Base"),self.finds("Auth_Usr_Attr"),self.finds("Auth_Grp_Attr"), self.finds("#Interface_Group")),
                         )
         elif which == "Client_Windows":
             settings = (
@@ -134,6 +140,8 @@ class Settings(object):
         for group in settings:
             confstring += "\n### ### ###\n"
             for item in group:
+                if item[0].startswith('#'):
+                    continue
                 confstring += "##{varname}\n".format(varname=item[2])
                 for line in item[3].split('\n'):
                     confstring += "#{infoline}\n".format(infoline=line)
@@ -145,9 +153,28 @@ class Settings(object):
 def Server(settingsobj):
     #The server installer script has to apt-get install python, python-twisted, python-ldap, python-mysqldb, pyOpenSSl
     #It also might have to install mysql
+    base = os.path.dirname(os.path.realpath(__file__))
+    path = base + "/Install_CABS_Broker"
+    
+    if not os.path.exists(path):
+        os.makedirs(path)
+    conf = settingsobj.createConf("Server")
+    with open(path+"/CABS_server.conf", 'w') as f:
+        f.write(conf)
     #this function makes the ca-certificates and priv key to go with it, and puts cacert in Shared
-    #openssl req -x509 -nodes -newkey res:2048 -keyout privkey.pen -out cacert.pem -days 24800
-    pass
+    if settingsobj.finds("#Create_SSL_Keys")[1] == 'True':
+        makeKeys(base, path, settingsobj)
+    else:
+        #try to move the cacert from shared
+        sslcert = settingsobj.finds("SSL_Cert")[1]
+        if sslcert != "None" and  os.path.isfile(base+"/Source/Shared/"+sslcert):
+            copy2(base+"/Source/Shared/"+sslcert, path+"/"+sslcert)
+    #copy the script and the installer scripts
+    copy2(base+"/Source/Broker/CABS_server.py",path+"/CABS_server.py")
+    copy2(base+"/Source/Broker/build/installer.sh",path+"/installer.sh")
+    copy2(base+"/Source/Broker/build/setupDatabase.py",path+"/setupDatabase.py")
+    
+    zipit(path, "CABS_server")
 
 def Interface(settingsobj):
     #The Interface install script has to install django, and install apache, and set it all up, this is a tough one 
@@ -171,6 +198,7 @@ def Client_Windows(settingsobj):
     if sslcert != "None" and  os.path.isfile(base+"/Source/Shared/"+sslcert):
         copy2(base+"/Source/Shared/"+sslcert, path+"/"+sslcert)
     
+    zipit(path, "CABS_Windows_Client")
 
 def Client_Linux(settingsobj):
     #This function makes the .conf, and moves all the stuff into a nice tar.bz with a install script, and a readme
@@ -195,11 +223,53 @@ def Agent_Windows(settingsobj):
     if sslcert != "None" and  os.path.isfile(base+"/Source/Shared/"+sslcert):
         copy2(base+"/Source/Shared/"+sslcert, path+"/"+sslcert)
 
+    zipit(path, "CABS_Windows_Agent")
+
 def Agent_Linux(settingsobj):
     #This function makes the .conf, and moves all the stuff into a nice tar.bz with a install script, and a readme
     pass
 
+########### HELPER #############
+
+def zipit(path, name):
+    #create zip
+    zipdir = zipfile.ZipFile(name+'.zip', 'w', zipfile.ZIP_STORED)
+    #add the stuff
+    for root, dirs, files in os.walk(path):
+        for item in files:
+            zipdir.write(os.path.join(root,item), name+'/'+item)
+    zipdir.close()
+    #remove the original directory
+    rmtree(path, True)
+
+def makeKeys(base, path, settingsobj):
+    privkey = settingsobj.finds("SSL_Priv_Key")[1]
+    cacert = settingsobj.finds("SSL_Cert")[1]
+    if privkey == "None" or cacert == "None":
+        return
+    couname = settingsobj.finds("#Cou_Name")[1]
+    orgname = settingsobj.finds("#Org_Name")[1]
+    comname = settingsobj.finds("#Com_Name")[1]
+    subjstring = ""
+    if couname:
+        subjstring += "/C="+couname
+    if orgname:
+        subjstring += "/O="+orgname
+    subjstring += "/CN="+comname
+    #openssl req -x509 -nodes -newkey rsa:2048 -keyout privkey.pem -out cacert.pem -days 24800 -subj "/C=<Country Name>/ST=<State>/L=<Locality Name>/O=<Organization Name>/CN=<Common Name>"
+    command = ["openssl", "req", "-x509", "-nodes", "-newkey", "rsa:2048", "-keyout", privkey, "-out", cacert, "-days", "24800", "-subj", subjstring]
+    p = subprocess.Popen(command, cwd=path)
+    (out,err) = p.communicate() #block until finished
+    copy2(path+"/"+cacert, base+"/Source/Shared/"+cacert)
+ 
+def cleanup(settingsobj):
+    #delete shared cacert
+    base = os.path.dirname(os.path.realpath(__file__))
+    sslcert = settingsobj.finds("SSL_Cert")[1]
+    os.remove(base+"/Source/Shared/"+sslcert)
+
 ########### TUI PAGES ###########
+
 def settings_screen(choice, settingsobj):
     #read default settings
     settingsgroups = settingsobj.getSettings(choice)
@@ -419,6 +489,7 @@ def runInterface():
     for ifunction in options:
         if ifunction[1]:
             globals()[ifunction[0]](settingsobj)
+    cleanup(settingsobj)
     endscreen()
 
 def start(screen):

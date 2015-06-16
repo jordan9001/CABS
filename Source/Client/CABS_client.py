@@ -24,7 +24,8 @@ def getRGSversion():
 
 def readConfigFile():
     global settings
-    with open('CABS_client.conf', 'r') as f:
+    filelocation = os.path.dirname(os.path.abspath(__file__)) + '/CABS_client.conf'
+    with open(filelocation, 'r') as f:
         for line in f:
             line = line.strip()
             if (not line.startswith('#')) and line:
