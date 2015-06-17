@@ -266,7 +266,8 @@ def cleanup(settingsobj):
     #delete shared cacert
     base = os.path.dirname(os.path.realpath(__file__))
     sslcert = settingsobj.finds("SSL_Cert")[1]
-    os.remove(base+"/Source/Shared/"+sslcert)
+    #nevermind, it is better to leave it for multiple sessions
+    #os.remove(base+"/Source/Shared/"+sslcert)
 
 ########### TUI PAGES ###########
 
