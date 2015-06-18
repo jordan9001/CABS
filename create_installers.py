@@ -4,7 +4,7 @@ import re
 import subprocess
 import os
 import zipfile
-from shutil import copy2, rmtree
+from shutil import copy2, copytree, rmtree
 try:
     import curses
     tui = True
@@ -52,9 +52,10 @@ class Settings(object):
                 ["#Org_Name", "", "Organization Name", "The Organization name for the SSL certificate", r"^[^/]*$"],
                 ["#Com_Name", "CABS_Server", "The Server's Name", "The Common name for the SSL certificate, usually the server name.", r"^[^/]+$"],
                 #Interface Installation
-                ["#Interface_Group", "", "Admin Group", "The LDAP or Active Directory group that can access the Interface", r""],
-                ["#Create_Server", "True", "Create New Apache Webserver", "Create a new apache2 webserver from script, installing all the proper components.\nIf this is False, the installer will just give you a Django application folder.", r"^((True)|(False))$"],
-                ["#Interface_Distro", "Debian", "Linux Distribution", "If you are using this installer, you must use: Debian (or something close).", r"^Debian$"],
+                ["Interface_Group", "", "Admin Group", "The LDAP or Active Directory group that can access the Interface\nThis should be the whole identifier line.\nSomething like: cn=group,ou=our groups,ou=departments,dc=example,dc=com", r""],
+                ["Create_Server", "False", "Create New Apache Webserver", "Create a new apache2 webserver from script, installing all the proper components.\nIf this is False, the installer will just give you the Django application.\nIt is recommended you set up your own server.", r"^((True)|(False))$"],
+                ["Interface_Distro", "Debian", "Linux Distribution", "If you are using this installer, you must use: Debian (or something close).", r"^Debian$"],
+                ["Interface_Host_Addr", "", "Interface Host Addresses", "The allowed hosts (website names) for your Interface.\nSeparate addresses with a space\nPut * for all hosts (insecure).", r""],
                 #Client or Shared .conf
                 ["Host_Addr", "localhost", "Broker Address", "The network address for the Broker.", r""],
                 ["Net_Domain", "", "The Network Domain", "The domain for your network.\nLeave this blank if your machines are on many networks.", r""],
@@ -93,11 +94,11 @@ class Settings(object):
                         )
         elif which == "Interface":
             settings = (
-                        (self.finds("#Create_Server"),self.finds("#Interface_Distro")),
+                        (self.finds("Create_Server"),self.finds("Interface_Distro"),self.finds("Interface_Host_Addr")),
                         
                         (self.finds("Database_Addr"),self.finds("Database_Port"),self.finds("Database_Usr"),self.finds("Database_Pass"),self.finds("Database_Name")),
                         
-                        (self.finds("Auth_Server"),self.finds("Auth_Prefix"),self.finds("Auth_Postfix"),self.finds("Auth_Base"),self.finds("Auth_Usr_Attr"),self.finds("Auth_Grp_Attr"), self.finds("#Interface_Group")),
+                        (self.finds("Auth_Server"),self.finds("Auth_Prefix"),self.finds("Auth_Postfix"),self.finds("Auth_Base"),self.finds("Auth_Usr_Attr"),self.finds("Auth_Grp_Attr"), self.finds("Interface_Group")),
                         )
         elif which == "Client_Windows":
             settings = (
@@ -177,8 +178,29 @@ def Server(settingsobj):
     zipit(path, "CABS_server")
 
 def Interface(settingsobj):
-    #The Interface install script has to install django, and install apache, and set it all up, this is a tough one 
-    pass
+    #split allowed hosts
+    item = settingsobj.finds("Interface_Host_Addr")
+    splitlist = item[1].split()
+    formated = "'" + "', '".join(splitlist) + "'"
+    item[1] = formated
+    settingsobj.setSettings((item,))
+    #Create the interface_install.conf
+    base = os.path.dirname(os.path.realpath(__file__))
+    path = base + "/Install_CABS_Interface"
+    
+    if not os.path.exists(path):
+        os.makedirs(path)
+    
+    conf = settingsobj.createConf("Interface")
+    with open(path+"/interface_install.conf", 'w') as f:
+        f.write(conf)
+    #move the admin_tools and cabs_admin and installers
+    copy2(base+"/Source/Interface/build/interface_install.sh", path+"/interface_install.sh")
+    copy2(base+"/Source/Interface/build/createSettings.py", path+"/createSettings.py")
+    copytree(base+"/Source/Interface/admin_tools/admin_tools/", path+"/admin_tools/")
+    copytree(base+"/Source/Interface/admin_tools/cabs_admin/", path+"/cabs_admin/")
+    
+    zipit(path, "CABS_Interface")
 
 def Client_Windows(settingsobj):
     #This function makes the .conf, and moves all the stuff into a nice zipped file with an installer and a readme
@@ -232,12 +254,16 @@ def Agent_Linux(settingsobj):
 ########### HELPER #############
 
 def zipit(path, name):
+    base_size = os.path.dirname(os.path.realpath(__file__)).count('/')
+    
     #create zip
     zipdir = zipfile.ZipFile(name+'.zip', 'w', zipfile.ZIP_STORED)
     #add the stuff
     for root, dirs, files in os.walk(path):
         for item in files:
-            zipdir.write(os.path.join(root,item), name+'_Install/'+item)
+            fullpath = os.path.join(root,item)
+            shortpath = fullpath[fullpath.replace('/', ' ', base_size).find('/')+1:]
+            zipdir.write(fullpath, shortpath)
     zipdir.close()
     #remove the original directory
     rmtree(path, True)
