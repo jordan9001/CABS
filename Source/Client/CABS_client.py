@@ -77,8 +77,8 @@ def getPools(user, password, host, port, retry=0):
     if (settings.get("SSL_Cert") is None) or (settings.get("SSL_Cert") == 'None'):
         s_wrapped = s
     else:
-        s_wrapped = ssl.wrap_socket(s, ca_certs=settings.get("SSL_Cert"), ssl_version=ssl.PROTOCOL_SSLv23)
-        #s_wrapped = ssl.wrap_socket(s, cert_reqs=ssl.CERT_REQUIRED, ca_certs=settings.get("SSL_Cert"), ssl_version=ssl.PROTOCOL_SSLv23)
+        #s_wrapped = ssl.wrap_socket(s, ca_certs=settings.get("SSL_Cert"), ssl_version=ssl.PROTOCOL_SSLv23)
+        s_wrapped = ssl.wrap_socket(s, cert_reqs=ssl.CERT_REQUIRED, ca_certs=settings.get("SSL_Cert"), ssl_version=ssl.PROTOCOL_SSLv23)
     
     s_wrapped.sendall(content)
     pools = ""
@@ -110,8 +110,8 @@ def getMachine(user, password, pool, host, port, retry=0):
     if (settings.get("SSL_Cert") is None) or (settings.get("SSL_Cert") == 'None'):
         s_wrapped = s
     else:
-        s_wrapped = ssl.wrap_socket(s, ca_certs=settings.get("SSL_Cert"), ssl_version=ssl.PROTOCOL_SSLv23)
-        #s_wrapped = ssl.wrap_socket(s, cert_reqs=ssl.CERT_REQUIRED, ca_certs=settings.get("SSL_Cert"), ssl_version=ssl.PROTOCOL_SSLv23)
+        #s_wrapped = ssl.wrap_socket(s, ca_certs=settings.get("SSL_Cert"), ssl_version=ssl.PROTOCOL_SSLv23)
+        s_wrapped = ssl.wrap_socket(s, cert_reqs=ssl.CERT_REQUIRED, ca_certs=settings.get("SSL_Cert"), ssl_version=ssl.PROTOCOL_SSLv23)
     
     s_wrapped.sendall(content)
     machine = ""
@@ -134,7 +134,7 @@ class ServerError(Exception):
 def showError(errortext):
     #generic errors
     if errortext == "pools":
-        message = "The server could not be reached, try again."
+        message = "The server could not be reached, or there are no availible pools, try again."
     elif errortext == "machines":
         message = "The server could not be reached, try again." 
     elif errortext.startswith("Err:"):
@@ -845,6 +845,8 @@ class MainWindow(wx.Frame):
             dlg.ShowModal()
             poolchoice = dlg.getChoice()
             dlg.Destroy()
+            if poolchoice is None:
+                return
             try:
                 machine = getMachine(username, password, poolchoice, server, port)
             except ServerError as e:

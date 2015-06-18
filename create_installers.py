@@ -237,7 +237,7 @@ def zipit(path, name):
     #add the stuff
     for root, dirs, files in os.walk(path):
         for item in files:
-            zipdir.write(os.path.join(root,item), name+'/'+item)
+            zipdir.write(os.path.join(root,item), name+'_Install/'+item)
     zipdir.close()
     #remove the original directory
     rmtree(path, True)

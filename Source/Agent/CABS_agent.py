@@ -55,7 +55,7 @@ def tellServer(userlist):
         if (settings.get("SSL_Cert") is None) or (settings.get("SSL_Cert") == 'None'):
             s_wrapped = s 
         else:
-            s_wrapped = ssl.wrap_socket(s, ca_certs=settings.get("SSL_Cert"), ssl_version=ssl.PROTOCOL_SSLv23)
+            s_wrapped = ssl.wrap_socket(s, cert_reqs=ssl.CERT_REQUIRED, ca_certs=settings.get("SSL_Cert"), ssl_version=ssl.PROTOCOL_SSLv23)
         
         s_wrapped.sendall(content)      
     except Exception as e:
