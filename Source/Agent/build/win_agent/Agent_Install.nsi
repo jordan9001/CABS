@@ -54,7 +54,7 @@ Section "CABS Agent (required)"
   
   #Create the Task
   Exec '"$SYSDIR\schtasks" /Create /XML $EXEDIR\win_agent_createtask.xml /TN CABS_agent'
-  Exec '"$SYSDIR\schtasks" /Run /XML /TN CABS_agent'
+  Exec '"$SYSDIR\schtasks" /Run /TN CABS_agent'
   
   # Write the installation path into the registry
   WriteRegStr HKLM SOFTWARE\CABS_agent "Install_Dir" "$INSTDIR"

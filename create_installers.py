@@ -4,6 +4,7 @@ import re
 import subprocess
 import os
 import zipfile
+import tarfile
 from shutil import copy2, copytree, rmtree
 try:
     import curses
@@ -67,8 +68,8 @@ class Settings(object):
                 #Agent .conf
                 ["Interval", "120", "Heartbeat Interval", "How often the Agent reports to the Server in seconds.\nMust be less than Broker's Reserve_Time.", r"^\d+$"],
                 ["Hostname", "None", "Fixed Hostname", "The Agent Machine's Hostname.\nIf 'None' then the hostname will be determined by the Agent.\nThis can be changed during Agent Install.", r""],
-                ["Directory-Win", "\\Program Files\\CABS\\Agent\\", "Install Directory", "The Agent's default install directory.\nYou probably shouldn't change this.", r""],
-                ["Directory-Lin", "/usr/lib/cabs/agent/", "Install Directory", "The Agent's default install directory.\nYou probably shouldn't change this.", r""],
+                #["Directory-Win", "\\Program Files\\CABS\\Agent\\", "Install Directory", "The Agent's default install directory.\nYou probably shouldn't change this.", r""],
+                #["Directory-Lin", "/usr/lib/cabs/agent/", "Install Directory", "The Agent's default install directory.\nYou probably shouldn't change this.", r""],
             )
     def finds(self, var_name):
         for item in self.s:
@@ -114,11 +115,15 @@ class Settings(object):
                         )
         elif which == "Agent_Windows":
             settings = (
-                        (self.finds("Interval"),self.finds("Hostname"),self.finds("Directory-Win")),
+                        (self.finds("SSL_Cert"),self.finds("Host_Addr"),self.finds("Agent_Port")),
+                        
+                        (self.finds("Interval"),self.finds("Hostname")),
                         )
         elif which == "Agent_Linux":
             settings = (
-                        (self.finds("Interval"),self.finds("Hostname"),self.finds("Directory-Lin")),
+                        (self.finds("SSL_Cert"),self.finds("Host_Addr"),self.finds("Agent_Port")),
+                        
+                        (self.finds("Interval"),self.finds("Hostname")),
                         )
         else:
             raise Exception
@@ -231,7 +236,24 @@ def Client_Windows(settingsobj):
 
 def Client_Linux(settingsobj):
     #This function makes the .conf, and moves all the stuff into a nice tar.bz with a install script, and a readme
-    pass
+    #create directory
+    base = os.path.dirname(os.path.realpath(__file__))
+    path = base + "/Install_CABS_Linux_Client"
+    
+    if not os.path.exists(path):
+        os.makedirs(path)
+    #write .conf
+    conf = settingsobj.createConf("Client_Linux")
+    with open(path+"/CABS_client.conf", 'w') as f:
+        f.write(conf)
+    #move the installer and the cacerts.pem
+    copy2(base+"/Source/Client/build/linux_client/CABS_Client", path+"/CABS_Client")
+    copy2(base+"/Source/Client/build/linux_client/install_client.sh", path+"/install_client.sh")
+    sslcert = settingsobj.finds("SSL_Cert")[1]
+    if sslcert != "None" and  os.path.isfile(base+"/Source/Shared/"+sslcert):
+        copy2(base+"/Source/Shared/"+sslcert, path+"/"+sslcert)
+
+    tarballit(path, "CABS_Linux_Client")
 
 def Agent_Windows(settingsobj):
     #This function makes the .conf, and moves all the stuff into a nice zipped file with an installer and a readme
@@ -256,9 +278,32 @@ def Agent_Windows(settingsobj):
 
 def Agent_Linux(settingsobj):
     #This function makes the .conf, and moves all the stuff into a nice tar.bz with a install script, and a readme
-    pass
+    #create directory
+    base = os.path.dirname(os.path.realpath(__file__))
+    path = base + "/Install_CABS_Linux_Agent"
+    
+    if not os.path.exists(path):
+        os.makedirs(path)
+    #write .conf
+    conf = settingsobj.createConf("Agent_Linux")
+    with open(path+"/CABS_agent.conf", 'w') as f:
+        f.write(conf)
+    #move the installer and the cacerts.pem
+    copy2(base+"/Source/Agent/build/linux_agent/CABS_Agent", path+"/CABS_Agent")
+    copy2(base+"/Source/Agent/build/linux_agent/install_agent.sh", path+"/install_agent.sh")
+    copy2(base+"/Source/Agent/build/linux_agent/CABS_agent_init.sh", path+"/CABS_agent_init.sh")
+    sslcert = settingsobj.finds("SSL_Cert")[1]
+    if sslcert != "None" and  os.path.isfile(base+"/Source/Shared/"+sslcert):
+        copy2(base+"/Source/Shared/"+sslcert, path+"/"+sslcert)
+    
+    tarballit(path, "CABS_Linux_Agent")
 
 ########### HELPER #############
+
+def tarballit(path, name):
+    with tarfile.open(name+'.tar.bz2', "w:bz2") as f:
+        f.add(path, arcname=os.path.basename(path))
+    rmtree(path, True)
 
 def zipit(path, name):
     base_size = os.path.dirname(os.path.realpath(__file__)).count('/')

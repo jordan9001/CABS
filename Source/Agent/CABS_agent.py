@@ -55,7 +55,8 @@ def tellServer(userlist):
         if (settings.get("SSL_Cert") is None) or (settings.get("SSL_Cert") == 'None'):
             s_wrapped = s 
         else:
-            s_wrapped = ssl.wrap_socket(s, cert_reqs=ssl.CERT_REQUIRED, ca_certs=settings.get("SSL_Cert"), ssl_version=ssl.PROTOCOL_SSLv23)
+            ssl_cert = settings.get("Directory") + "/" + settings.get("SSL_Cert")
+            s_wrapped = ssl.wrap_socket(s, cert_reqs=ssl.CERT_REQUIRED, ca_certs=ssl_cert, ssl_version=ssl.PROTOCOL_SSLv23)
         
         s_wrapped.sendall(content)      
     except Exception as e:
@@ -65,9 +66,11 @@ def readConfigFile():
     #open the .conf file and return the variables as a dictionary
     global settings
     if os.path.isfile(os.path.dirname(os.path.abspath(__file__)) + '/CABS_agent.conf'):
+        settings["Directory"] = os.path.dirname(os.path.abspath(__file__))
         filelocation = os.path.dirname(os.path.abspath(__file__)) + '/CABS_agent.conf'
     else:
-        filelocation = 'C:\\CABS' + '\\CABS_agent.conf'
+        settings["Directory"] = 'C:\\Program Files\\CABS\\Agent'
+        filelocation = 'C:\\Program Files\\CABS\\Agent' + '\\CABS_agent.conf'
     with open(filelocation, 'r') as f:
         for line in f:
             line = line.strip()
@@ -97,8 +100,6 @@ def readConfigFile():
         settings["Interval"] = 120
     if not settings.get("Hostname"):
         settings["Hostname"] = None
-    if not settings.get("Directory"):
-        settings["Directory"] = '/CABS/'
 
     if (settings.get("Hostname") is None) or (settings.get("Hostname") == 'None'):
         #If we want a fqdn we can use socket.gethostbyaddr(socket.gethostname())[0]
