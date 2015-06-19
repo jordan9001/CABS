@@ -27,7 +27,7 @@ class Settings(object):
                 ["Database_Addr", "127.0.0.1", "MySQL Server Address", "The address of the MySQL server the Broker and Interface will use.\nIf the Broker and the Database will be installed on the same machine, keep the default.",r""],
                 ["Database_Port", "3306", "MySQL Port", "The port number that the MySQL server runs on.", r"^\d{3,5}$"],
                 ["Database_Usr", "CABS", "MySQL Username", "The username for the Broker to access the MySQL database.\nThis should be changed from the default value, and kept private.", r"^\w+$"],
-                ["Database_Pass", "BACS", "MySQL Password", "The password for the Broker to access the MySQL password.\nThis should be changed from the default value, and kept private.", r"^\w+$"],
+                ["Database_Pass", "BACS", "MySQL Password", "The password for the Broker to access the MySQL password.\nThis should be changed from the default value, and kept private.", r"^.+$"],
                 ["Database_Name", "test", "Database Name", "The CABS Database name on the MySQL server that the Broker will access.", r"^\w+$"],
                 ["Reserve_Time", "360", "Machine Reserve Time", "The amount of time, that the Broker will keep a machine reserved.\nThis must be longer than the Agent's Interval, usually by 2 or 3 times.\nThis value is in seconds.", r"^\d{2,9}$"],
                 ["Timeout_Time", "540", "Machine Timeout Time", "The time the Broker will wait until it marks a machine as inactive.\nThis must be longer that Reserve Time.\nThis is in seconds.", r"^\d{2,9}$"],
@@ -94,7 +94,7 @@ class Settings(object):
                         )
         elif which == "Interface":
             settings = (
-                        (self.finds("Create_Server"),self.finds("Interface_Distro"),self.finds("Interface_Host_Addr")),
+                        (self.finds("Create_Server"),self.finds("Interface_Distro"),self.finds("Interface_Host_Addr"),self.finds("SSL_Priv_Key"),self.finds("SSL_Cert")),
                         
                         (self.finds("Database_Addr"),self.finds("Database_Port"),self.finds("Database_Usr"),self.finds("Database_Pass"),self.finds("Database_Name")),
                         
@@ -175,7 +175,7 @@ def Server(settingsobj):
     copy2(base+"/Source/Broker/build/installer.sh",path+"/installer.sh")
     copy2(base+"/Source/Broker/build/setupDatabase.py",path+"/setupDatabase.py")
     
-    zipit(path, "CABS_server")
+    zipit(path, "CABS_Server")
 
 def Interface(settingsobj):
     #split allowed hosts
@@ -199,6 +199,13 @@ def Interface(settingsobj):
     copy2(base+"/Source/Interface/build/createSettings.py", path+"/createSettings.py")
     copytree(base+"/Source/Interface/admin_tools/admin_tools/", path+"/admin_tools/")
     copytree(base+"/Source/Interface/admin_tools/cabs_admin/", path+"/cabs_admin/")
+    #copy SSL keys
+    sslcert = settingsobj.finds("SSL_Cert")[1]
+    if sslcert != "None" and  os.path.isfile(base+"/Source/Shared/"+sslcert):
+        copy2(base+"/Source/Shared/"+sslcert, path+"/"+sslcert)
+    sslkey = settingsobj.finds("SSL_Priv_Key")[1]
+    if sslkey != "None" and  os.path.isfile(base+"/Source/Shared/"+sslkey):
+        copy2(base+"/Source/Shared/"+sslkey, path+"/"+sslkey)
     
     zipit(path, "CABS_Interface")
 
@@ -287,11 +294,12 @@ def makeKeys(base, path, settingsobj):
     p = subprocess.Popen(command, cwd=path)
     (out,err) = p.communicate() #block until finished
     copy2(path+"/"+cacert, base+"/Source/Shared/"+cacert)
+    copy2(path+"/"+privkey, base+"/Source/Shared/"+privkey)
  
 def cleanup(settingsobj):
     #delete shared cacert
     base = os.path.dirname(os.path.realpath(__file__))
-    sslcert = settingsobj.finds("SSL_Cert")[1]
+    #sslcert = settingsobj.finds("SSL_Cert")[1]
     #nevermind, it is better to leave it for multiple sessions
     #os.remove(base+"/Source/Shared/"+sslcert)
 

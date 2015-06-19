@@ -31,11 +31,10 @@ def generateKey():
     chars = string.ascii_uppercase + string.lowercase + string.digits + "!=%-+^"
     return ''.join(random.SystemRandom().choice(chars) for _ in range(50))
 
-def main():
-    readConfigFile()
+def createDjangoSettings():
     key = generateKey()
-
-    output_string = """
+    output_string = ""
+    output_string += """
 import os
 BASE_DIR = os.path.dirname(os.path.dirname(__file__))
 
@@ -46,7 +45,7 @@ SECRET_KEY = '{security_key}'
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = False
 
-TEMPLATE_DEBUG = True
+TEMPLATE_DEBUG = False
 LOGGING = {
     'version': 1,
     'disable_existing_loggers': False,
@@ -78,9 +77,9 @@ LOGGING = {
     output_string += """
 ALLOWED_HOSTS = [{host_list}]
 
-#SESSION_COOKIE_SECURE = True
+SESSION_COOKIE_SECURE = True
 SESSION_EXPIRE_AT_BROWSER_CLOSE = True
-#CSRF_COOKIE_SECURE = True
+CSRF_COOKIE_SECURE = True
 
 # Django-auth-ldap
 AUTHENTICATION_BACKENDS = (
@@ -89,7 +88,7 @@ AUTHENTICATION_BACKENDS = (
 
 AUTH_LDAP_USER_DN_TEMPLATE = "{auth_prefix}%(user)s{auth_postfix}"
 AUTH_LDAP_BIND_AS_AUTHENTICATING_USER = True
-AUTH_LDAP_SERVER_URI = "{auth_server}"
+AUTH_LDAP_SERVER_URI = "ldap://{auth_server}"
 import ldap
 from django_auth_ldap.config import LDAPSearch, MemberDNGroupType
 """.format(host_list=settings.get("Interface_Host_Addr"), auth_prefix=settings.get("Auth_Prefix"), auth_postfix=settings.get("Auth_Postfix"), auth_server=settings.get("Auth_Server"))
@@ -219,6 +218,54 @@ backend._LDAPUser._authenticate_user_dn = monkey
     with open(base+"/settings.py", 'w') as f:
         f.write(output_string)
     
+def createApacheSettings():
+    output_string = ""
+    output_string += """
+<VirtualHost *:80>
+    RewriteEngine On
+    RewriteCond %{SERVER_PORT} !^443$
+    RewriteRule (.*) https://cabs.et.byu.edu/$1 [QSA,NC,R,L]
+    
+    #WSGIDaemonProcess CABS_interface python-path=/var/www/CABS_interface:/var/www/CABS_interface/env/lib/python2.7/site-packages
+    #WSGIProcessGroup CABS_interface
+    #WSGIScriptAlias / /var/www/CABS_interface/admin_tools/wsgi.py
 
-if __name__= "__main__":
+    #DocumentRoot /var/www/html
+
+    #ErrorLog ${APACHE_LOG_DIR}/error.log
+    #CustomLog ${APACHE_LOG_DIR}/access.log combined
+</VirtualHost>
+
+<VirtualHost *:443>
+    WSGIDaemonProcess CABS_interface python-path=/var/www/CABS_interface:/var/www/CABS_interface/env/lib/python2.7/site-packages
+    WSGIProcessGroup CABS_interface
+    WSGIScriptAlias / /var/www/CABS_interface/admin_tools/wsgi.py
+    
+    SSLEngine On
+"""
+
+    output_string += """
+    SSLCertificateKeyFile /var/www/CABS_interface/{privkey}
+    SSLCertificateFile /var/www/CABS_interface/{cert}
+""".format(privkey=settings.get("SSL_Priv_Key"), cert=settings.get("SSL_Cert"))
+
+    output_string += """
+    
+    DocumentRoot /var/www/html
+
+    ErrorLog ${APACHE_LOG_DIR}/error.log
+    CustomLog ${APACHE_LOG_DIR}/access.log combined
+</VirtualHost>
+"""
+    #output to 000-default.conf
+    base = os.path.dirname(os.path.realpath(__file__))
+    with open(base+"/000-default.conf", 'w') as f:
+        f.write(output_string)
+
+def main():
+    readConfigFile()
+    createDjangoSettings()
+    createApacheSettings()
+
+if __name__== "__main__":
     main()
