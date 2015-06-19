@@ -415,7 +415,7 @@ def editSetting(setting):
         
         if c == curses.KEY_ENTER or c == 10 or c == 11 or c == 13 or (c == ord(' ') and pos != 0):
             if pos == 1 and not regex_error:
-                return newvalue
+                return newvalue.encode('string_escape')
             if pos == 0:
                 pos = 1
             else:
