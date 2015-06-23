@@ -29,7 +29,12 @@ def hitServer():
     except Exception as e:
         print "Error:", e
     else:
-        content = settings.get("Message")
+        if not settings.get("Message"):
+            name = "".join( [random.choice(string.letters) for i in range(int(settings.get("Rand_Length")))] )
+            paswd = "".join( [random.choice(string.letters) for i in range(int(settings.get("Rand_Length")))] )
+            content = "pr:{0}:{1}".format(name, paswd)
+        else:
+            content = settings.get("Message")
         if settings.get("No_Return") != 'True':
             content += '\r\n'
         if (settings.get("SSL_Cert") is None) or (settings.get("SSL_Cert") == 'None'):
@@ -93,10 +98,6 @@ def getArgs():
         settings["Port"] = 18181
     if not settings.get("Rand_Length"):
         settings["Rand_Length"] = "30"
-    if not settings.get("Message"):
-        name = "".join( [random.choice(string.letters) for i in range(int(settings.get("Rand_Length")))] )
-        paswd = "".join( [random.choice(string.letters) for i in range(int(settings.get("Rand_Length")))] )
-        settings["Message"] = "pr:{0}:{1}".format(name, paswd)
     if not settings.get("Number"):
         settings["Number"] = "300"
     if not settings.get("Threads"):
