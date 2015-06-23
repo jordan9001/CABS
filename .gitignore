@@ -6,5 +6,5 @@
 *.xcf
 *.swp
 *.zip
-
+*.tar.bz2
 .test*
