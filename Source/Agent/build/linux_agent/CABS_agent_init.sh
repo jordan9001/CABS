@@ -12,25 +12,25 @@
 #Get functions from functions library
 . /etc/init.d/functions
 
-PATHTOAGENT=/usr/lib/CABS/CABS_agentd
+PATHTOAGENT=/usr/lib/CABS/CABS_Agent
 
 start() {
     if [ ! -f /var/lock/subsys/CABS_agent ]; then
-        echo -n "Starting CABS_agent: "
+        echo -n "Starting CABS_Agent: "
         daemon $PATHTOAGENT
         ##create lockfile
-        touch /var/lock/subsys/CABS_agent
-        success "Starting CABS_agent"
+        touch /var/lock/subsys/CABS_Agent
+        success "Starting CABS_Agent"
     else
         echo -n "Lockfile exists already."
     fi
 }
 
 stop() {
-    echo -n "Stopping CABS_agent: "
-    killproc CABS_agent
+    echo -n "Stopping CABS_Agent: "
+    killproc CABS_Agent
     ##delete lockfile
-    rm -f /var/lock/subsys/CABS_agent
+    rm -f /var/lock/subsys/CABS_Agent
 }
 
 
