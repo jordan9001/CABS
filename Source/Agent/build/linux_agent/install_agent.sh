@@ -18,12 +18,12 @@ DIR="/usr/lib/CABS/"
 mkdir -m 775 -p $DIR
 
 #copy the files
-cp $SRCDIR/CABS_Agent $DIR/CABS_Agent
+cp $SRCDIR/cabsagentd $DIR/cabsagentd
 cp $SRCDIR/CABS_agent.conf $DIR/CABS_agent.conf
 cp $SRCDIR/*.pem $DIR/
-cp $SRCDIR/CABS_agent_init.sh /etc/init.d/CABS_agent_init.sh
+cp $SRCDIR/cabsagent /etc/init.d/cabsagent
 
 #add the init script
-chkconfig --add CABS_agent_init.sh --levels 345
+chkconfig --add cabsagent --levels 345
 
 

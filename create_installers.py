@@ -293,9 +293,9 @@ def Agent_Linux(settingsobj):
     with open(path+"/CABS_agent.conf", 'w') as f:
         f.write(conf)
     #move the installer and the cacerts.pem
-    copy2(base+"/Source/Agent/build/linux_agent/CABS_Agent", path+"/CABS_Agent")
+    copy2(base+"/Source/Agent/build/linux_agent/cabsagentd", path+"/cabsagentd")
     copy2(base+"/Source/Agent/build/linux_agent/install_agent.sh", path+"/install_agent.sh")
-    copy2(base+"/Source/Agent/build/linux_agent/CABS_agent_init.sh", path+"/CABS_agent_init.sh")
+    copy2(base+"/Source/Agent/build/linux_agent/cabsagent", path+"/cabsagent")
     sslcert = settingsobj.finds("SSL_Cert")[1]
     if sslcert != "None" and  os.path.isfile(base+"/Source/Shared/"+sslcert):
         copy2(base+"/Source/Shared/"+sslcert, path+"/"+sslcert)
