@@ -46,6 +46,7 @@ class Settings(object):
                 ["Log_Amount", "3", "Verbosity Level", "The amount written out to the log database.\nA number from 0(none) to 4(highest).", r"^\d$"],
                 ["Log_Keep", "600", "Log History Limit", "The number of Log items to keep in history after pruning.", r"^\d+"],
                 ["Log_Time", "1800", "Log Prune Interval", "How long between deleting excess off of the Log, in seconds.", r"^\d+"],
+                ["One_Connection", "True", "One Connection per Machine", "True if the machines with the Agents can only handle one remote connection.", r"^((True)|(False))$"],
                 #Broker Installation
                 ["#Broker_Distro", "Debian", "Linux Distribution", "If you are using this installer, you must use: Debian (or something close).", r"^Debian$"],
                 ["#Create_SSL_Keys", "True", "Create a new SSL private key and certificate.", "If this is 'True', this script will create a new SSL private key and SSL certificate.\nNote, OpenSSL must be installed for this option.", r"^((True)|(False))$"],
@@ -85,7 +86,7 @@ class Settings(object):
                         
                         (self.finds("Database_Addr"),self.finds("Database_Port"),self.finds("Database_Usr"),self.finds("Database_Pass"),self.finds("Database_Name")),
 
-                        (self.finds("Use_Agents"),self.finds("Reserve_Time"),self.finds("Timeout_Time"),self.finds("Use_Blacklist"),self.finds("Auto_Blacklist"),self.finds("Auto_Max")),
+                        (self.finds("Use_Agents"),self.finds("Reserve_Time"),self.finds("Timeout_Time"),self.finds("Use_Blacklist"),self.finds("Auto_Blacklist"),self.finds("Auto_Max"),self.finds("One_Connection")),
 
                         (self.finds("Auth_Server"),self.finds("Auth_Prefix"),self.finds("Auth_Postfix"),self.finds("Auth_Base"),self.finds("Auth_Usr_Attr"),self.finds("Auth_Grp_Attr")),
                         
@@ -249,6 +250,8 @@ def Client_Linux(settingsobj):
     #move the installer and the cacerts.pem
     copy2(base+"/Source/Client/build/linux_client/CABS_Client", path+"/CABS_Client")
     copy2(base+"/Source/Client/build/linux_client/install_client.sh", path+"/install_client.sh")
+    copy2(base+"/Source/Client/Header.png", path+"/Header.png")
+    copy2(base+"/Source/Client/Icon.png", path+"/Icon.png")
     sslcert = settingsobj.finds("SSL_Cert")[1]
     if sslcert != "None" and  os.path.isfile(base+"/Source/Shared/"+sslcert):
         copy2(base+"/Source/Shared/"+sslcert, path+"/"+sslcert)

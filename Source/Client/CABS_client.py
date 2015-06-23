@@ -873,7 +873,10 @@ class MainWindow(wx.Frame):
                 if str(machine).endswith(self.tab6.domandserv.domain.GetValue().strip()):
                     address = str(machine)
                 else:
-                    address = str(machine) + "." + (self.tab6.domandserv.domain.GetValue().strip())
+                    string2add = (self.tab6.domandserv.domain.GetValue().strip())
+                    if not string2add.startswith('.'):
+                        string2add = '.' + string2add
+                    address = str(machine) + string2add
                 #process RGS settings, and build request
                 command = []
                 command.append(settings.get("RGS_Location"))
@@ -900,7 +903,7 @@ class MainWindow(wx.Frame):
                 command.extend(self.tab1.rgsSettings())
                 command.extend(self.tab1.rgsSettings())
                 command.extend(self.tab1.rgsSettings())
-                print "running" + str(command)
+                #print "running" + str(command)
                 p = subprocess.Popen(command)
             else:
                 #invalid RGS Location   

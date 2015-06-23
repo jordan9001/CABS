@@ -1,5 +1,4 @@
 # Client_Install.nsi
-!include LogicLib.nsh
 
 #--------------------------------
 
@@ -10,11 +9,11 @@ Name "CABS Windows Client"
 OutFile "Install_CABS_Client.exe"
 
 # The default installation directory
-InstallDir $PROGRAMFILES\CABS\Client
+InstallDir "C:\Program Files\CABS\Client"
 
 # Registry key to check for directory (so if you install again, it will 
 # overwrite the old one automatically)
-InstallDirRegKey HKLM "Software\CABS_Client" "Install_Dir"
+InstallDirRegKey HKLM "Software\CABS_client" "Install_Dir"
 
 # Request application privileges for Windows Vista
 RequestExecutionLevel admin
@@ -90,10 +89,10 @@ Section "Uninstall"
 	Delete $INSTDIR\$1
   FindClose $0
 
- # Remove shortcuts
+  # Remove shortcuts
   Delete "$SMPROGRAMS\CABS\*.*"
 
-  ; Remove directories used
+  # Remove directories used
   RMDir "$SMPROGRAMS\CABS"
   RMDir "$INSTDIR"
 SectionEnd

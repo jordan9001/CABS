@@ -29,6 +29,9 @@
     <select class="main_choice" name="setting" onchange="this.form.submit()">
         <option value="" disabled {% if not option_choosen %} selected {% endif %}>Choose a Setting</option>
         <option value="Max_Clients" {% if option_choosen == 'Max_clients' %} selected {% endif %}>Maximum Clients</option>
+        <option value="Log_Amount" {% if option_choosen == 'Log_Amount' %} selected {% endif %}>Log Level</option>
+        <option value="Log_Keep" {% if option_choosen == 'Log_Keep' %} selected {% endif %}>Log History Amount</option>
+        <option value="Log_Time" {% if option_choosen == 'Log_Time' %} selected {% endif %}>Log Prune Time</option>
         <option value="Reserve_Time" {% if option_choosen == 'Reserve_Time' %} selected {% endif %}>Machine Reserve Time</option> 
         <option value="Timeout_Time" {% if option_choosen == 'Timeout_Time' %} selected {% endif %}>Machine Timeout Time</option>
         <option value="Use_Blacklist" {% if option_choosen == 'Use_Blacklist' %} selected {% endif %}>Enable Blacklist</option>
@@ -51,6 +54,21 @@
             <label>Specify a value between 1-250</label>
             <input type="number" name="value" min="1" max="250" step="1">
             <p>This setting chooses the maximum number of simultaneous connections that the Broker can handle at one time.</p>
+        {% elif option_choosen == 'Log_Amount' %}
+            <label>Specify a value from 0 to 4</label>
+            <input type="number" name="value" min="0" max="4" step="1">
+            <p>This setting is the amount of logging the Broker will do, with 0 being none, and 4 being full debug.
+            </br>3 is usually a good amount.</p>
+        {% elif option_choosen == 'Log_Keep' %}
+            <label>Specify a value.</label>
+            <input type="number" name="value" min="0" step="1">
+            <p>This setting is the amount of logging lines the Broker will keep when it prunes old history.
+            </br>The amount you want depends on your database and Log Level.</p>
+        {% elif option_choosen == 'Log_Amount' %}
+            <label>Specify a value in seconds</label>
+            <input type="number" name="value" min="5" step="1">
+            <p>This setting is the amount of time in between each pruning of the Log.
+            </br>This can be a fairly high value</p>
         {% elif option_choosen == 'Reserve_Time' %} 
             <label>Specify a value in seconds</label>
             <input type="number" name="value" min="1" step="1">
