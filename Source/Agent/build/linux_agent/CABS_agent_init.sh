@@ -1,12 +1,12 @@
 #!/bin/sh
 #
-# /etc/init.d/CABSagent
+# /etc/init.d/CABS_agent_init.sh
 # 
 # The agent that keeps in touch with the CABS broker service
 # This is the redhat init.d script
 #
 # chkconfig: 345 93 01
-# processname: CABS_agentd
+# processname: CABS_Agent
 # config: /usr/lib/CABS/CABS_agent.conf autoreload
 
 #Get functions from functions library
@@ -15,7 +15,7 @@
 PATHTOAGENT=/usr/lib/CABS/CABS_Agent
 
 start() {
-    if [ ! -f /var/lock/subsys/CABS_agent ]; then
+    if [ ! -f /var/lock/subsys/CABS_Agent ]; then
         echo -n "Starting CABS_Agent: "
         daemon $PATHTOAGENT
         ##create lockfile

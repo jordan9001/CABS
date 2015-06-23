@@ -24,6 +24,6 @@ cp $SRCDIR/*.pem $DIR/
 cp $SRCDIR/CABS_agent_init.sh /etc/init.d/CABS_agent_init.sh
 
 #add the init script
-chkconfig --add --levels 345
+chkconfig --add CABS_agent_init.sh --levels 345
 
 

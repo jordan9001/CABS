@@ -5,6 +5,7 @@ import subprocess
 import os
 import zipfile
 import tarfile
+from contextlib import closing
 from shutil import copy2, copytree, rmtree
 try:
     import curses
@@ -304,7 +305,7 @@ def Agent_Linux(settingsobj):
 ########### HELPER #############
 
 def tarballit(path, name):
-    with tarfile.open(name+'.tar.bz2', "w:bz2") as f:
+    with closing(tarfile.open(name+'.tar.bz2', "w:bz2")) as f:
         f.add(path, arcname=os.path.basename(path))
     rmtree(path, True)
 
