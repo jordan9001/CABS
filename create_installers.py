@@ -20,7 +20,8 @@ class Settings(object):
     #Handles giving out settings, and keeping things consistant.
     s = (
                 #Broker or Shared .conf
-                ["Max_Clients", "62", "Maximum Client Connections", "The maximum number of client connections at one time.\nAfter that it will force others to wait.\nIf 'None' is specified, there will be no set maximum.", r"^((\d+)|(None))$"],
+                ["Max_Clients", "60", "Maximum Client Connections", "The maximum number of client connections at one time.\nAfter that it will force others to wait.\nIf 'None' is specified, there will be no set maximum.", r"^((\d+)|(None))$"],
+                ["Max_Agents", "120", "Maximum Agent Connections", "The maximum number of agent connections at one time.\nAfter that it will force others to wait.\nIf 'None' is specified, there will be no set maximum.", r"^((\d+)|(None))$"],
                 ["Client_Port", "18181", "Client Port", "The port that the Broker will use to listen for Client connections.", r"^\d{3,5}$"],
                 ["Agent_Port", "18182", "Agent Port", "The port that the Broker will use to listen for Agent connections.", r"^\d{3,5}$"],
                 ["Use_Agents", "True", "Use Agents", "This should be True, it allows Agents to connect to the Server.", r"^((True)|(False))$"],
@@ -83,7 +84,7 @@ class Settings(object):
         #Returns settings in: settings( group( setting[var_name, default, tag, description, regex],),)
         if which == "Server":
             settings = (
-                        (self.finds("#Broker_Distro"),self.finds("Max_Clients"),self.finds("Client_Port"),self.finds("Agent_Port"),self.finds("SSL_Priv_Key"),self.finds("SSL_Cert"),self.finds("RGS_Ver_Min"),self.finds("Verbose_Out")),
+                        (self.finds("#Broker_Distro"),self.finds("Max_Clients"),self.finds("Max_Agents"),self.finds("Client_Port"),self.finds("Agent_Port"),self.finds("SSL_Priv_Key"),self.finds("SSL_Cert"),self.finds("RGS_Ver_Min"),self.finds("Verbose_Out")),
                         
                         (self.finds("Database_Addr"),self.finds("Database_Port"),self.finds("Database_Usr"),self.finds("Database_Pass"),self.finds("Database_Name")),
 
