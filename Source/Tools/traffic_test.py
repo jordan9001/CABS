@@ -56,7 +56,11 @@ def floodServer():
     
     #Constuct packet
     packet = ''
-    host = socket.gethostbyname(settings.get("Host"))
+    if not settings.get("Host_IP"):
+        host = socket.gethostbyname(settings.get("Host"))
+        settings["Host_IP"] = host
+    else:
+        host = settings.get("Host_IP")
     source = genIP()
     
     #ip headers
@@ -175,7 +179,7 @@ def printUsage(extend=False):
         print "  -h host           : the CABS Broker Server"
         print "  -p port           : the CABS Broker Port for Clients or Agents"
         print "  -f                : SYN flood, only available on linux as root"
-        print "  -ff               : SYN flood with random id, only available on linux as root"
+        print "  -ff               : SYN flood one packet, only available on linux as root"
         print "  -v                : Verbose, warning this outputs a lot!"
         print "  -s /to/cert.pem   : the path to the CABS Broker certificate.pem"
         print "  -r                : don't add a valid return at the end of the message"
@@ -203,9 +207,9 @@ def getArgs():
                 printUsage(True)
             if sys.argv[i] in ['-h', '--host', '-host']:
                 option = "Host"
-            elif sys.argv[i] in ['-f', '--flood', '-flood', '--syn-flood']:
+            elif sys.argv[i] in ['-ff', '--flood-one', '-flood-one', '--syn-flood-one']:
                 settings["Syn_Flood"] = 'True'
-            elif sys.argv[i] in ['-ff', '--flood-rand', '-flood-rand', '--syn-flood-rand']:
+            elif sys.argv[i] in ['-f', '--flood', '-flood', '--syn-flood']:
                 settings["Syn_Flood"] = 'True'
                 settings["Rand_Roll"] = 'True'
             elif sys.argv[i] in ['-v', '--verbose', '-verbose']:
