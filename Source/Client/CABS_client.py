@@ -3,6 +3,7 @@ import socket, ssl
 import subprocess
 import sys
 import time
+import os
 from time import sleep
 from os.path import isfile
 from ast import literal_eval
@@ -14,7 +15,7 @@ settings = {}
 try:
     import psutil
     settings["psutil"] = 'True'
-else:
+except:
     settings["psutil"] = 'False'
 
 command_settings = []
@@ -81,7 +82,9 @@ def getPools(user, password, host, port, retry=0):
         content = "prv:{0}:{1}:{2}".format(user, password, getRGSversion())
     else:
         content = "pr:{0}:{1}\r\n".format(user, password)
-    #content = 'pr:notauser:fakepass\r\n'
+    
+    #print "sending {0} to {1}:{2}".format(content, host, port)
+
     if (settings.get("SSL_Cert") is None) or (settings.get("SSL_Cert") == 'None'):
         s_wrapped = s
     else:
@@ -867,7 +870,7 @@ class MainWindow(wx.Frame):
                 dlg.ShowModal()
             else:
                 #run the RGS command
-                print machine
+                #print machine
                 self.runCommand(username, password, machine, port)
         else:
             message = showError("machines")
@@ -912,8 +915,17 @@ class MainWindow(wx.Frame):
                 command.extend(self.tab1.rgsSettings())
                 command.extend(self.tab1.rgsSettings())
                 #print "running" + str(command)
+                try:
+                    pass
+                    #self.sizer = wx.BoxSizer(wx.VERTICAL)
+                    #self.sizer.Fit(self) 
+                    #self.Hide()
+                    #self.Show(False)
+                    #self.Close()
+                    #self.Destroy()
+                except Exception as e:
+                    print "Tried to close, but it errored : ", e
                 p = subprocess.Popen(command)
-                self.Hide()
                 watchProcess(p.pid)
             else:
                 #invalid RGS Location   
@@ -932,24 +944,41 @@ class MainWindow(wx.Frame):
                 #print "running " + command
                 
 
-def watchProcess(pid)
+def watchProcess(pid):
     #we need psutil for this
     if settings.get("psutil") == 'False':
         sys.exit()
     #given this process we need to kill the RGS initial screen thing when it's child fork dies
     #then we exit
-    process = psutil.Process(pid)
-    while(True):
-        #check for the number of children in the group to go down
-        time.sleep(2)
-        print len(process.children(recursive=True))
+    try:
+        process = psutil.Process(pid)
+        if process.parent():
+            process = process.parent()
+        time.sleep(6) #wait 6 seconds, to make sure the connections start
+        while(True):
+            #check for the number of children's connections in the group to go down
+            time.sleep(2)
+            connections = []
+            for child in process.children(recursive=True):
+                connections.extend( child.connections(kind="tcp") )
+            if len(connections) == 0:
+                break
+            else:
+                nonout = True
+                for connection in connections:
+                    #if no connections are established, we are done, so kill it.
+                    if connection.status == 'ESTABLISHED':
+                        nonout = False
+                if nonout:
+                    break
+            
+        #kill the process, and ourselves too
+        os.killpg(process.pid, 1)#this will kill our process
         
-    #kill the process, and ourselves too
-    grpid = os.getpgid(pid)
-    os.killpg(grpid, 1)#this will probably kill our process
-    
-    sys.exit()
-    #bye!
+        sys.exit()
+        #bye!
+    except:
+        pass
 
 def main():
     readConfigFile()    
