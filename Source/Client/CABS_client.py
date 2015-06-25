@@ -1,14 +1,22 @@
 #!/usr/bin/python
-import wx
 import socket, ssl
 import subprocess
 import sys
+import time
 from time import sleep
 from os.path import isfile
 from ast import literal_eval
 
+import wx
+
 
 settings = {}
+try:
+    import psutil
+    settings["psutil"] = 'True'
+else:
+    settings["psutil"] = 'False'
+
 command_settings = []
 
 ID_POOL_BUTTON = wx.NewId()
@@ -905,6 +913,8 @@ class MainWindow(wx.Frame):
                 command.extend(self.tab1.rgsSettings())
                 #print "running" + str(command)
                 p = subprocess.Popen(command)
+                self.Hide()
+                watchProcess(p.pid)
             else:
                 #invalid RGS Location   
                 dlg = wx.MessageDialog(self, "Invalid rgreceiver location\nCheck CABS_client.conf", 'Error', wx.OK | wx.ICON_ERROR)
@@ -921,6 +931,25 @@ class MainWindow(wx.Frame):
                 p = subprocess.Popen(command, shell=True)
                 #print "running " + command
                 
+
+def watchProcess(pid)
+    #we need psutil for this
+    if settings.get("psutil") == 'False':
+        sys.exit()
+    #given this process we need to kill the RGS initial screen thing when it's child fork dies
+    #then we exit
+    process = psutil.Process(pid)
+    while(True):
+        #check for the number of children in the group to go down
+        time.sleep(2)
+        print len(process.children(recursive=True))
+        
+    #kill the process, and ourselves too
+    grpid = os.getpgid(pid)
+    os.killpg(grpid, 1)#this will probably kill our process
+    
+    sys.exit()
+    #bye!
 
 def main():
     readConfigFile()    
