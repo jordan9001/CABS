@@ -737,8 +737,8 @@ class PickPoolDialog(wx.Dialog):
 
 class MainWindow(wx.Frame):
     def __init__(self, parent):
-        #wx.Frame.__init__(self, parent, title="CABS", size=(-1,-1), style = wx.SYSTEM_MENU | wx.CAPTION | wx.CLOSE_BOX)
-        wx.Frame.__init__(self, parent, title="CABS", size=(450,-1))
+        #wx.Frame.__init__(self, parent, title="CABS", size=(450,-1))
+        wx.Frame.__init__(self, parent, title="CABS", size=(-1,-1))
         self.CreateStatusBar()
         
         self.InitUI()
@@ -800,17 +800,20 @@ class MainWindow(wx.Frame):
         p.SetSizer(self.sizer)
         p.SetAutoLayout(1)
         self.sizer.Fit(self)
-        self.SetSize((450,-1))
+        #self.SetSize((450,-1))
+        self.SetSize((-1,-1))
     
     def toggleOptions(self, e):
         if self.notebook.IsShown():
             self.notebook.Hide()    
             self.sizer.Fit(self)
-            self.SetSize((450,-1))
+            #self.SetSize((450,-1))
+            self.SetSize((-1,-1))
         else:
             self.notebook.Show()
             self.sizer.Fit(self)
-            self.SetSize((450,-1))
+            #self.SetSize((450,-1))
+            self.SetSize((-1,-1))
     
     def handleSettings(self, e):
         if e.GetId() == ID_SUBMIT_BUTTON:
