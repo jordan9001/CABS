@@ -956,18 +956,17 @@ def watchProcess(pid):
             connections = []
             for child in process.children(recursive=True):
                 connections.extend( child.connections(kind="tcp") )
-            if len(connections) == 0:
+            numout = 0
+            for connection in connections:
+                #if no connections are in state established (or just one connection on windows), we are done, so kill it.
+                if connection.status == 'ESTABLISHED':
+                    numout += 1
+            if numout <= 1:
                 break
-            else:
-                numout = 0
-                for connection in connections:
-                    #if no connections are in state established (or just one connection on windows), we are done, so kill it.
-                    if connection.status == 'ESTABLISHED':
-                        numout += 1
-                if numout <= 1:
-                    break
             
-        #kill the process, and ourselves too
+        #kill the processes, and ourselves too
+        for child in process.children(recursive=True):
+            child.kill()
         os.killpg(process.pid, 1)#this will kill our process
         
         sys.exit()
