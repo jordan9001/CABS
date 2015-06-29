@@ -915,18 +915,13 @@ class MainWindow(wx.Frame):
                 command.extend(self.tab1.rgsSettings())
                 command.extend(self.tab1.rgsSettings())
                 #print "running" + str(command)
-                try:
-                    pass
-                    #self.sizer = wx.BoxSizer(wx.VERTICAL)
-                    #self.sizer.Fit(self) 
-                    #self.Hide()
-                    #self.Show(False)
-                    #self.Close()
-                    #self.Destroy()
-                except Exception as e:
-                    print "Tried to close, but it errored : ", e
-                p = subprocess.Popen(command)
-                watchProcess(p.pid)
+                
+                #set command, then quit the wxapp
+                global rgscommand
+                rgscommand = command
+                self.Destroy()
+                #p = subprocess.Popen(command)
+                #watchProcess(p.pid)
             else:
                 #invalid RGS Location   
                 dlg = wx.MessageDialog(self, "Invalid rgreceiver location\nCheck CABS_client.conf", 'Error', wx.OK | wx.ICON_ERROR)
@@ -985,8 +980,11 @@ def main():
     
     app = wx.App(False)
     MainWindow(None).Show()
-    
     app.MainLoop()
+    
+    if rgscommand:
+        p = subprocess.Popen(rgscommand)
+        watchProcess(p.pid)
 
 if __name__ == "__main__":
         main()
