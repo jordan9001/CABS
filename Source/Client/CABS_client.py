@@ -959,12 +959,12 @@ def watchProcess(pid):
             if len(connections) == 0:
                 break
             else:
-                nonout = True
+                numout = 0
                 for connection in connections:
-                    #if no connections are established, we are done, so kill it.
+                    #if no connections are in state established (or just one connection on windows), we are done, so kill it.
                     if connection.status == 'ESTABLISHED':
-                        nonout = False
-                if nonout:
+                        numout += 1
+                if numout <= 1:
                     break
             
         #kill the process, and ourselves too
