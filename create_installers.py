@@ -343,6 +343,8 @@ def makeKeys(base, path, settingsobj):
     command = ["openssl", "req", "-x509", "-nodes", "-newkey", "rsa:2048", "-keyout", privkey, "-out", cacert, "-days", "24800", "-subj", subjstring]
     p = subprocess.Popen(command, cwd=path)
     (out,err) = p.communicate() #block until finished
+    if not os.path.exists(base+"/Source/Shared"):
+        os.makedirs(base+"/Source/Shared")
     copy2(path+"/"+cacert, base+"/Source/Shared/"+cacert)
     copy2(path+"/"+privkey, base+"/Source/Shared/"+privkey)
  

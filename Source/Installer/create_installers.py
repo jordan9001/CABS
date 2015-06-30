@@ -4,7 +4,9 @@ import re
 import subprocess
 import os
 import zipfile
-from shutil import copy2, rmtree
+import tarfile
+from contextlib import closing
+from shutil import copy2, copytree, rmtree
 try:
     import curses
     tui = True
@@ -18,7 +20,8 @@ class Settings(object):
     #Handles giving out settings, and keeping things consistant.
     s = (
                 #Broker or Shared .conf
-                ["Max_Clients", "62", "Maximum Client Connections", "The maximum number of client connections at one time.\nAfter that it will force others to wait.\nIf 'None' is specified, there will be no set maximum.", r"^((\d+)|(None))$"],
+                ["Max_Clients", "60", "Maximum Client Connections", "The maximum number of client connections at one time.\nAfter that it will force others to wait.\nIf 'None' is specified, there will be no set maximum.", r"^((\d+)|(None))$"],
+                ["Max_Agents", "120", "Maximum Agent Connections", "The maximum number of agent connections at one time.\nAfter that it will force others to wait.\nIf 'None' is specified, there will be no set maximum.", r"^((\d+)|(None))$"],
                 ["Client_Port", "18181", "Client Port", "The port that the Broker will use to listen for Client connections.", r"^\d{3,5}$"],
                 ["Agent_Port", "18182", "Agent Port", "The port that the Broker will use to listen for Agent connections.", r"^\d{3,5}$"],
                 ["Use_Agents", "True", "Use Agents", "This should be True, it allows Agents to connect to the Server.", r"^((True)|(False))$"],
@@ -27,7 +30,7 @@ class Settings(object):
                 ["Database_Addr", "127.0.0.1", "MySQL Server Address", "The address of the MySQL server the Broker and Interface will use.\nIf the Broker and the Database will be installed on the same machine, keep the default.",r""],
                 ["Database_Port", "3306", "MySQL Port", "The port number that the MySQL server runs on.", r"^\d{3,5}$"],
                 ["Database_Usr", "CABS", "MySQL Username", "The username for the Broker to access the MySQL database.\nThis should be changed from the default value, and kept private.", r"^\w+$"],
-                ["Database_Pass", "BACS", "MySQL Password", "The password for the Broker to access the MySQL password.\nThis should be changed from the default value, and kept private.", r"^\w+$"],
+                ["Database_Pass", "BACS", "MySQL Password", "The password for the Broker to access the MySQL password.\nThis should be changed from the default value, and kept private.", r"^.+$"],
                 ["Database_Name", "test", "Database Name", "The CABS Database name on the MySQL server that the Broker will access.", r"^\w+$"],
                 ["Reserve_Time", "360", "Machine Reserve Time", "The amount of time, that the Broker will keep a machine reserved.\nThis must be longer than the Agent's Interval, usually by 2 or 3 times.\nThis value is in seconds.", r"^\d{2,9}$"],
                 ["Timeout_Time", "540", "Machine Timeout Time", "The time the Broker will wait until it marks a machine as inactive.\nThis must be longer that Reserve Time.\nThis is in seconds.", r"^\d{2,9}$"],
@@ -45,6 +48,7 @@ class Settings(object):
                 ["Log_Amount", "3", "Verbosity Level", "The amount written out to the log database.\nA number from 0(none) to 4(highest).", r"^\d$"],
                 ["Log_Keep", "600", "Log History Limit", "The number of Log items to keep in history after pruning.", r"^\d+"],
                 ["Log_Time", "1800", "Log Prune Interval", "How long between deleting excess off of the Log, in seconds.", r"^\d+"],
+                ["One_Connection", "True", "One Connection per Machine", "True if the machines with the Agents can only handle one remote connection.", r"^((True)|(False))$"],
                 #Broker Installation
                 ["#Broker_Distro", "Debian", "Linux Distribution", "If you are using this installer, you must use: Debian (or something close).", r"^Debian$"],
                 ["#Create_SSL_Keys", "True", "Create a new SSL private key and certificate.", "If this is 'True', this script will create a new SSL private key and SSL certificate.\nNote, OpenSSL must be installed for this option.", r"^((True)|(False))$"],
@@ -52,9 +56,10 @@ class Settings(object):
                 ["#Org_Name", "", "Organization Name", "The Organization name for the SSL certificate", r"^[^/]*$"],
                 ["#Com_Name", "CABS_Server", "The Server's Name", "The Common name for the SSL certificate, usually the server name.", r"^[^/]+$"],
                 #Interface Installation
-                ["#Interface_Group", "", "Admin Group", "The LDAP or Active Directory group that can access the Interface", r""],
-                ["#Create_Server", "True", "Create New Apache Webserver", "Create a new apache2 webserver from script, installing all the proper components.\nIf this is False, the installer will just give you a Django application folder.", r"^((True)|(False))$"],
-                ["#Interface_Distro", "Debian", "Linux Distribution", "If you are using this installer, you must use: Debian (or something close).", r"^Debian$"],
+                ["Interface_Group", "", "Admin Group", "The LDAP or Active Directory group that can access the Interface\nThis should be the whole identifier line.\nSomething like: cn=group,ou=our groups,ou=departments,dc=example,dc=com", r""],
+                ["Create_Server", "False", "Create New Apache Webserver", "Create a new apache2 webserver from script, installing all the proper components.\nIf this is False, the installer will just give you the Django application.\nIt is recommended you set up your own server.", r"^((True)|(False))$"],
+                ["Interface_Distro", "Debian", "Linux Distribution", "If you are using this installer, you must use: Debian (or something close).", r"^Debian$"],
+                ["Interface_Host_Addr", "", "Interface Host Addresses", "The allowed hosts (website names) for your Interface.\nSeparate addresses with a space\nPut * for all hosts (insecure).", r""],
                 #Client or Shared .conf
                 ["Host_Addr", "localhost", "Broker Address", "The network address for the Broker.", r""],
                 ["Net_Domain", "", "The Network Domain", "The domain for your network.\nLeave this blank if your machines are on many networks.", r""],
@@ -66,8 +71,8 @@ class Settings(object):
                 #Agent .conf
                 ["Interval", "120", "Heartbeat Interval", "How often the Agent reports to the Server in seconds.\nMust be less than Broker's Reserve_Time.", r"^\d+$"],
                 ["Hostname", "None", "Fixed Hostname", "The Agent Machine's Hostname.\nIf 'None' then the hostname will be determined by the Agent.\nThis can be changed during Agent Install.", r""],
-                ["Directory-Win", "\\Program Files\\CABS\\Agent\\", "Install Directory", "The Agent's default install directory.\nYou probably shouldn't change this.", r""],
-                ["Directory-Lin", "/usr/lib/cabs/agent/", "Install Directory", "The Agent's default install directory.\nYou probably shouldn't change this.", r""],
+                #["Directory-Win", "\\Program Files\\CABS\\Agent\\", "Install Directory", "The Agent's default install directory.\nYou probably shouldn't change this.", r""],
+                #["Directory-Lin", "/usr/lib/cabs/agent/", "Install Directory", "The Agent's default install directory.\nYou probably shouldn't change this.", r""],
             )
     def finds(self, var_name):
         for item in self.s:
@@ -79,11 +84,11 @@ class Settings(object):
         #Returns settings in: settings( group( setting[var_name, default, tag, description, regex],),)
         if which == "Server":
             settings = (
-                        (self.finds("#Broker_Distro"),self.finds("Max_Clients"),self.finds("Client_Port"),self.finds("Agent_Port"),self.finds("SSL_Priv_Key"),self.finds("SSL_Cert"),self.finds("RGS_Ver_Min"),self.finds("Verbose_Out")),
+                        (self.finds("#Broker_Distro"),self.finds("Max_Clients"),self.finds("Max_Agents"),self.finds("Client_Port"),self.finds("Agent_Port"),self.finds("SSL_Priv_Key"),self.finds("SSL_Cert"),self.finds("RGS_Ver_Min"),self.finds("Verbose_Out")),
                         
                         (self.finds("Database_Addr"),self.finds("Database_Port"),self.finds("Database_Usr"),self.finds("Database_Pass"),self.finds("Database_Name")),
 
-                        (self.finds("Use_Agents"),self.finds("Reserve_Time"),self.finds("Timeout_Time"),self.finds("Use_Blacklist"),self.finds("Auto_Blacklist"),self.finds("Auto_Max")),
+                        (self.finds("Use_Agents"),self.finds("Reserve_Time"),self.finds("Timeout_Time"),self.finds("Use_Blacklist"),self.finds("Auto_Blacklist"),self.finds("Auto_Max"),self.finds("One_Connection")),
 
                         (self.finds("Auth_Server"),self.finds("Auth_Prefix"),self.finds("Auth_Postfix"),self.finds("Auth_Base"),self.finds("Auth_Usr_Attr"),self.finds("Auth_Grp_Attr")),
                         
@@ -93,11 +98,11 @@ class Settings(object):
                         )
         elif which == "Interface":
             settings = (
-                        (self.finds("#Create_Server"),self.finds("#Interface_Distro")),
+                        (self.finds("Create_Server"),self.finds("Interface_Distro"),self.finds("Interface_Host_Addr"),self.finds("SSL_Priv_Key"),self.finds("SSL_Cert")),
                         
                         (self.finds("Database_Addr"),self.finds("Database_Port"),self.finds("Database_Usr"),self.finds("Database_Pass"),self.finds("Database_Name")),
                         
-                        (self.finds("Auth_Server"),self.finds("Auth_Prefix"),self.finds("Auth_Postfix"),self.finds("Auth_Base"),self.finds("Auth_Usr_Attr"),self.finds("Auth_Grp_Attr"), self.finds("#Interface_Group")),
+                        (self.finds("Auth_Server"),self.finds("Auth_Prefix"),self.finds("Auth_Postfix"),self.finds("Auth_Base"),self.finds("Auth_Usr_Attr"),self.finds("Auth_Grp_Attr"), self.finds("Interface_Group")),
                         )
         elif which == "Client_Windows":
             settings = (
@@ -113,11 +118,15 @@ class Settings(object):
                         )
         elif which == "Agent_Windows":
             settings = (
-                        (self.finds("Interval"),self.finds("Hostname"),self.finds("Directory-Win")),
+                        (self.finds("SSL_Cert"),self.finds("Host_Addr"),self.finds("Agent_Port")),
+                        
+                        (self.finds("Interval"),self.finds("Hostname")),
                         )
         elif which == "Agent_Linux":
             settings = (
-                        (self.finds("Interval"),self.finds("Hostname"),self.finds("Directory-Lin")),
+                        (self.finds("SSL_Cert"),self.finds("Host_Addr"),self.finds("Agent_Port")),
+                        
+                        (self.finds("Interval"),self.finds("Hostname")),
                         )
         else:
             raise Exception
@@ -174,11 +183,39 @@ def Server(settingsobj):
     copy2(base+"/Source/Broker/build/installer.sh",path+"/installer.sh")
     copy2(base+"/Source/Broker/build/setupDatabase.py",path+"/setupDatabase.py")
     
-    zipit(path, "CABS_server")
+    zipit(path, "CABS_Server")
 
 def Interface(settingsobj):
-    #The Interface install script has to install django, and install apache, and set it all up, this is a tough one 
-    pass
+    #split allowed hosts
+    item = settingsobj.finds("Interface_Host_Addr")
+    splitlist = item[1].split()
+    formated = "'" + "', '".join(splitlist) + "'"
+    item[1] = formated
+    settingsobj.setSettings((item,))
+    #Create the interface_install.conf
+    base = os.path.dirname(os.path.realpath(__file__))
+    path = base + "/Install_CABS_Interface"
+    
+    if not os.path.exists(path):
+        os.makedirs(path)
+    
+    conf = settingsobj.createConf("Interface")
+    with open(path+"/interface_install.conf", 'w') as f:
+        f.write(conf)
+    #move the admin_tools and cabs_admin and installers
+    copy2(base+"/Source/Interface/build/interface_install.sh", path+"/interface_install.sh")
+    copy2(base+"/Source/Interface/build/createSettings.py", path+"/createSettings.py")
+    copytree(base+"/Source/Interface/admin_tools/admin_tools/", path+"/admin_tools/")
+    copytree(base+"/Source/Interface/admin_tools/cabs_admin/", path+"/cabs_admin/")
+    #copy SSL keys
+    sslcert = settingsobj.finds("SSL_Cert")[1]
+    if sslcert != "None" and  os.path.isfile(base+"/Source/Shared/"+sslcert):
+        copy2(base+"/Source/Shared/"+sslcert, path+"/"+sslcert)
+    sslkey = settingsobj.finds("SSL_Priv_Key")[1]
+    if sslkey != "None" and  os.path.isfile(base+"/Source/Shared/"+sslkey):
+        copy2(base+"/Source/Shared/"+sslkey, path+"/"+sslkey)
+    
+    zipit(path, "CABS_Interface")
 
 def Client_Windows(settingsobj):
     #This function makes the .conf, and moves all the stuff into a nice zipped file with an installer and a readme
@@ -202,7 +239,26 @@ def Client_Windows(settingsobj):
 
 def Client_Linux(settingsobj):
     #This function makes the .conf, and moves all the stuff into a nice tar.bz with a install script, and a readme
-    pass
+    #create directory
+    base = os.path.dirname(os.path.realpath(__file__))
+    path = base + "/Install_CABS_Linux_Client"
+    
+    if not os.path.exists(path):
+        os.makedirs(path)
+    #write .conf
+    conf = settingsobj.createConf("Client_Linux")
+    with open(path+"/CABS_client.conf", 'w') as f:
+        f.write(conf)
+    #move the installer and the cacerts.pem
+    copy2(base+"/Source/Client/build/linux_client/CABS_Client", path+"/CABS_Client")
+    copy2(base+"/Source/Client/build/linux_client/install_client.sh", path+"/install_client.sh")
+    copy2(base+"/Source/Client/Header.png", path+"/Header.png")
+    copy2(base+"/Source/Client/Icon.png", path+"/Icon.png")
+    sslcert = settingsobj.finds("SSL_Cert")[1]
+    if sslcert != "None" and  os.path.isfile(base+"/Source/Shared/"+sslcert):
+        copy2(base+"/Source/Shared/"+sslcert, path+"/"+sslcert)
+
+    tarballit(path, "CABS_Linux_Client")
 
 def Agent_Windows(settingsobj):
     #This function makes the .conf, and moves all the stuff into a nice zipped file with an installer and a readme
@@ -227,17 +283,44 @@ def Agent_Windows(settingsobj):
 
 def Agent_Linux(settingsobj):
     #This function makes the .conf, and moves all the stuff into a nice tar.bz with a install script, and a readme
-    pass
+    #create directory
+    base = os.path.dirname(os.path.realpath(__file__))
+    path = base + "/Install_CABS_Linux_Agent"
+    
+    if not os.path.exists(path):
+        os.makedirs(path)
+    #write .conf
+    conf = settingsobj.createConf("Agent_Linux")
+    with open(path+"/CABS_agent.conf", 'w') as f:
+        f.write(conf)
+    #move the installer and the cacerts.pem
+    copy2(base+"/Source/Agent/build/linux_agent/cabsagentd", path+"/cabsagentd")
+    copy2(base+"/Source/Agent/build/linux_agent/install_agent.sh", path+"/install_agent.sh")
+    copy2(base+"/Source/Agent/build/linux_agent/cabsagent", path+"/cabsagent")
+    sslcert = settingsobj.finds("SSL_Cert")[1]
+    if sslcert != "None" and  os.path.isfile(base+"/Source/Shared/"+sslcert):
+        copy2(base+"/Source/Shared/"+sslcert, path+"/"+sslcert)
+    
+    tarballit(path, "CABS_Linux_Agent")
 
 ########### HELPER #############
 
+def tarballit(path, name):
+    with closing(tarfile.open(name+'.tar.bz2', "w:bz2")) as f:
+        f.add(path, arcname=os.path.basename(path))
+    rmtree(path, True)
+
 def zipit(path, name):
+    base_size = os.path.dirname(os.path.realpath(__file__)).count('/')
+    
     #create zip
     zipdir = zipfile.ZipFile(name+'.zip', 'w', zipfile.ZIP_STORED)
     #add the stuff
     for root, dirs, files in os.walk(path):
         for item in files:
-            zipdir.write(os.path.join(root,item), name+'/'+item)
+            fullpath = os.path.join(root,item)
+            shortpath = fullpath[fullpath.replace('/', ' ', base_size).find('/')+1:]
+            zipdir.write(fullpath, shortpath)
     zipdir.close()
     #remove the original directory
     rmtree(path, True)
@@ -261,12 +344,14 @@ def makeKeys(base, path, settingsobj):
     p = subprocess.Popen(command, cwd=path)
     (out,err) = p.communicate() #block until finished
     copy2(path+"/"+cacert, base+"/Source/Shared/"+cacert)
+    copy2(path+"/"+privkey, base+"/Source/Shared/"+privkey)
  
 def cleanup(settingsobj):
     #delete shared cacert
     base = os.path.dirname(os.path.realpath(__file__))
-    sslcert = settingsobj.finds("SSL_Cert")[1]
-    os.remove(base+"/Source/Shared/"+sslcert)
+    #sslcert = settingsobj.finds("SSL_Cert")[1]
+    #nevermind, it is better to leave it for multiple sessions
+    #os.remove(base+"/Source/Shared/"+sslcert)
 
 ########### TUI PAGES ###########
 
@@ -335,7 +420,7 @@ def editSetting(setting):
         
         if c == curses.KEY_ENTER or c == 10 or c == 11 or c == 13 or (c == ord(' ') and pos != 0):
             if pos == 1 and not regex_error:
-                return newvalue
+                return newvalue.encode('string_escape')
             if pos == 0:
                 pos = 1
             else:

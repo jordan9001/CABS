@@ -69,8 +69,11 @@ def readConfigFile():
         settings["Directory"] = os.path.dirname(os.path.abspath(__file__))
         filelocation = os.path.dirname(os.path.abspath(__file__)) + '/CABS_agent.conf'
     else:
-        settings["Directory"] = 'C:\\Program Files\\CABS\\Agent'
-        filelocation = 'C:\\Program Files\\CABS\\Agent' + '\\CABS_agent.conf'
+        settings["Directory"] = '\\Program Files\\CABS\\Agent'
+        filelocation = '\\Program Files\\CABS\\Agent' + '\\CABS_agent.conf'
+        if not os.path.isfile(filelocation):
+            settings["Directory"] = '\\Program Files (x86)\\CABS\\Agent'
+            filelocation = '\\Program Files (x86)\\CABS\\Agent' + '\\CABS_agent.conf'
     with open(filelocation, 'r') as f:
         for line in f:
             line = line.strip()

@@ -34,6 +34,9 @@ def getRGSversion():
 def readConfigFile():
     global settings
     filelocation = os.path.dirname(os.path.abspath(__file__)) + '/CABS_client.conf'
+    if not isfile(filelocation):
+        return False
+    
     with open(filelocation, 'r') as f:
         for line in f:
             line = line.strip()
@@ -74,6 +77,8 @@ def readConfigFile():
         settings["Net_Domain"] = ""
     if not settings.get("RGS_Version"):
         settings["RGS_Version"] = 'False'
+    
+    return True
 
 def getPools(user, password, host, port, retry=0):
     s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -977,16 +982,23 @@ def watchProcess(pid):
     except:
         pass
 
+
 def main():
-    readConfigFile()    
+    if readConfigFile():
+        app = wx.App(False)
+        MainWindow(None).Show()
+        app.MainLoop()
     
-    app = wx.App(False)
-    MainWindow(None).Show()
-    app.MainLoop()
-    
-    if rgscommand:
-        p = subprocess.Popen(rgscommand)
-        watchProcess(p.pid)
+        if rgscommand:
+            p = subprocess.Popen(rgscommand)
+            watchProcess(p.pid)
+    else:
+        app = wx.App(False)
+        wx.MessageBox('Could not find CABS_client.conf', 'Error', wx.CANCEL | wx.ICON_ERROR)
+        frame = wx.Frame(None)
+        frame.Center()
+        frame.Show()
+        app.MainLoop()
 
 if __name__ == "__main__":
         main()
