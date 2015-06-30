@@ -94,7 +94,8 @@ def getPools(user, password, host, port, retry=0):
         s_wrapped = s
     else:
         #s_wrapped = ssl.wrap_socket(s, ca_certs=settings.get("SSL_Cert"), ssl_version=ssl.PROTOCOL_SSLv23)
-        s_wrapped = ssl.wrap_socket(s, cert_reqs=ssl.CERT_REQUIRED, ca_certs=settings.get("SSL_Cert"), ssl_version=ssl.PROTOCOL_SSLv23)
+        ssl_cert = os.path.dirname(os.path.abspath(__file__)) + "/" + settings.get("SSL_Cert")
+        s_wrapped = ssl.wrap_socket(s, cert_reqs=ssl.CERT_REQUIRED, ca_certs=ssl_cert, ssl_version=ssl.PROTOCOL_SSLv23)
     
     s_wrapped.sendall(content)
     pools = ""
@@ -127,7 +128,8 @@ def getMachine(user, password, pool, host, port, retry=0):
         s_wrapped = s
     else:
         #s_wrapped = ssl.wrap_socket(s, ca_certs=settings.get("SSL_Cert"), ssl_version=ssl.PROTOCOL_SSLv23)
-        s_wrapped = ssl.wrap_socket(s, cert_reqs=ssl.CERT_REQUIRED, ca_certs=settings.get("SSL_Cert"), ssl_version=ssl.PROTOCOL_SSLv23)
+        ssl_cert = os.path.dirname(os.path.abspath(__file__)) + "/" + settings.get("SSL_Cert")
+        s_wrapped = ssl.wrap_socket(s, cert_reqs=ssl.CERT_REQUIRED, ca_certs=ssl_cert, ssl_version=ssl.PROTOCOL_SSLv23)
     
     s_wrapped.sendall(content)
     machine = ""
@@ -747,6 +749,7 @@ class MainWindow(wx.Frame):
         self.CreateStatusBar()
         
         self.InitUI()
+        self.CheckSettings()
         self.Center()
         self.Show()
         
@@ -807,6 +810,12 @@ class MainWindow(wx.Frame):
         self.sizer.Fit(self)
         #self.SetSize((450,-1))
         self.SetSize((-1,-1))
+
+    def CheckSettings(self):
+        if (settings.get("SSL_Cert") is not None) and (settings.get("SSL_Cert") != 'None'):
+            ssl_cert = os.path.dirname(os.path.abspath(__file__)) + "/" + settings.get("SSL_Cert")
+            if not isfile(ssl_cert):
+                wx.MessageBox('Could not find the SSL certificate at\n{0}'.format(ssl_cert), 'Error', wx.CANCEL | wx.ICON_ERROR)
     
     def toggleOptions(self, e):
         if self.notebook.IsShown():
@@ -982,8 +991,21 @@ def watchProcess(pid):
     except:
         pass
 
+class NoConf(wx.Frame):
+    def __init__(self, parent):
+        wx.Frame.__init__(self, parent, title="CABS", size=(-1,-1))
+        self.Center()
+        self.showMessage()
+    
+    def showMessage(self):
+        filelocation = os.path.dirname(os.path.abspath(__file__)) + '/'
+        wx.MessageBox('Could not find CABS_client.conf in:\n{0}'.format(filelocation), 'Error', wx.CANCEL | wx.ICON_ERROR)
+        self.Destroy()
 
 def main():
+    global rgscommand
+    rgscommand = None
+
     if readConfigFile():
         app = wx.App(False)
         MainWindow(None).Show()
@@ -994,10 +1016,7 @@ def main():
             watchProcess(p.pid)
     else:
         app = wx.App(False)
-        wx.MessageBox('Could not find CABS_client.conf', 'Error', wx.CANCEL | wx.ICON_ERROR)
-        frame = wx.Frame(None)
-        frame.Center()
-        frame.Show()
+        NoConf(None).Show()
         app.MainLoop()
 
 if __name__ == "__main__":
