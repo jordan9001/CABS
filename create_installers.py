@@ -44,7 +44,7 @@ class Settings(object):
                 ["Auth_Usr_Attr", "None", "User Attribute", "The LDAP or Active Directory user attribute.", r""],
                 ["Auth_Grp_Attr", "None", "Group Attribute", "The LDAP or Active Direcory group attribute.", r""],
                 ["Auth_Secure", "False", "Use TLS for Authentication", "This enables Authentication over a secure connection.\nWithout this, passwords are not secure.", r"^((True)|(False))$"],
-                ["Auth_Cert", "None", "Authentication Server TLS Certificate", "This is the public certificate for the authentication server.\nWithout this connections will not be truly secure.", r""],
+                ["Auth_Cert", "None", "Authentication Server TLS Certificate", "This is the public certificate for the authentication server.\nWithout this connections will not be truly secure.", r"^((\w+.pem)|(None))$"],
                 ["RGS_Ver_Min", "False", "RGS Minimum Version", "The earliest RGS version that can connect.\nIf you are not using RGS, put 'False'", r"^((False)|(\d+.\d+.\d+))$"],
                 ["Verbose_Out", "False", "Output to Screen", "Output not only to the log, but also to stdout.", r"^((True)|(False))$"],
                 ["Log_Amount", "3", "Verbosity Level", "The amount written out to the log database.\nA number from 0(none) to 4(highest).", r"^\d$"],
@@ -185,6 +185,14 @@ def Server(settingsobj):
     copy2(base+"/Source/Broker/build/installer.sh",path+"/installer.sh")
     copy2(base+"/Source/Broker/build/setupDatabase.py",path+"/setupDatabase.py")
     
+    authcert = settingsobj.finds("Auth_Cert")[1]
+    if authcert != 'None':
+        try:
+            copy2(base+"/Source/Shared/"+authcert, path+"/"+authcert)
+        except:
+            with open(path+"/WARNING.txt", 'w') as f:
+                f.write("Could not find {0}, make sure to provide it.".format(authcert))
+    
     zipit(path, "CABS_Server")
 
 def Interface(settingsobj):
@@ -216,6 +224,14 @@ def Interface(settingsobj):
     sslkey = settingsobj.finds("SSL_Priv_Key")[1]
     if sslkey != "None" and  os.path.isfile(base+"/Source/Shared/"+sslkey):
         copy2(base+"/Source/Shared/"+sslkey, path+"/"+sslkey)
+    
+    authcert = settingsobj.finds("Auth_Cert")[1]
+    if authcert != 'None':
+        try:
+            copy2(base+"/Source/Shared/"+authcert, path+"/"+authcert)
+        except:
+            with open(path+"/WARNING.txt", 'w') as f:
+                f.write("Could not find {0}, make sure to provide it.".format(authcert))
     
     zipit(path, "CABS_Interface")
 

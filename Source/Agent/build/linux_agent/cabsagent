@@ -33,12 +33,12 @@ start() {
         echo "User has insufficient privilege."
         exit 4
     fi
-    if [ ! -f /var/lock/subsys/CABS_agent ]; then
+    if [ ! -f $lockfile ]; then
         echo -n $"Starting $prog:"
         daemon $prog
         retval=$?
         ##create lockfile
-        [ $retval -eq 0 ] && touch /var/lock/subsys/CABS_Agent
+        [ $retval -eq 0 ] && touch $lockfile
         success "Starting CABS_Agent"
     else
         echo -n "Lockfile exists already."
@@ -49,7 +49,7 @@ stop() {
     echo -n "Stopping $prog: "
     killproc $exec
     ##delete lockfile
-    rm -f /var/lock/subsys/CABS_Agent
+    rm -f $lockfile
 }
 
 

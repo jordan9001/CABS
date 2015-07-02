@@ -85,13 +85,33 @@ CSRF_COOKIE_SECURE = True
 AUTHENTICATION_BACKENDS = (
     'django_auth_ldap.backend.LDAPBackend',
 )
+import ldap
+from django_auth_ldap.config import LDAPSearch, MemberDNGroupType
+""".format(host_list=settings.get("Interface_Host_Addr"))
+    if settings.get("Auth_Secure") == 'True':
+        output_string += """
+#LDAP over TLS
+AUTH_LDAP_GLOBAL_OPTIONS = {
+"""
+        if settings.get("Auth_Cert") != 'None' and settings.get("Auth_Cert") is not None:
+            output_string += """
+    ldap.OPT_X_TLS_CACERTFILE: "/var/www/CABS_interface/{auth_cert}",
+    ldap.OPT_X_TLS_REQUIRE_CERT: ldap.OPT_X_TLS_DEMAND,
+""".format(settings.get("Auth_Cert"))
+        else:
+            output_string += """
+    ldap.OPT_X_TLS_REQUIRE_CERT: ldap.OPT_X_TLS_NEVER,
+"""
+        output_string += """
+}
+AUTH_LDAP_START_TLS = True
+"""
 
+    output_string += """
 AUTH_LDAP_USER_DN_TEMPLATE = "{auth_prefix}%(user)s{auth_postfix}"
 AUTH_LDAP_BIND_AS_AUTHENTICATING_USER = True
 AUTH_LDAP_SERVER_URI = "ldap://{auth_server}"
-import ldap
-from django_auth_ldap.config import LDAPSearch, MemberDNGroupType
-""".format(host_list=settings.get("Interface_Host_Addr"), auth_prefix=settings.get("Auth_Prefix"), auth_postfix=settings.get("Auth_Postfix"), auth_server=settings.get("Auth_Server"))
+""".format(auth_prefix=settings.get("Auth_Prefix"), auth_postfix=settings.get("Auth_Postfix"), auth_server=settings.get("Auth_Server"))
 
     output_string += """
 AUTH_LDAP_CONNECTION_OPTIONS = {
