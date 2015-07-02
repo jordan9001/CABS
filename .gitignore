@@ -1,4 +1,6 @@
 *.pem
+*.cer
+*.crt
 *.pyc
 *.sql
 *.sqlite

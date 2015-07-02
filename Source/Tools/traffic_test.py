@@ -205,7 +205,7 @@ def getArgs():
         else:
             if sys.argv[i] in ['-?', '?', '--help', '-help']:
                 printUsage(True)
-            if sys.argv[i] in ['-h', '--host', '-host']:
+            elif sys.argv[i] in ['-h', '--host', '-host']:
                 option = "Host"
             elif sys.argv[i] in ['-ff', '--flood-one', '-flood-one', '--syn-flood-one']:
                 settings["Syn_Flood"] = 'True'

@@ -37,12 +37,14 @@ class Settings(object):
                 ["Use_Blacklist", "True", "Use The Blacklist", "Refuse to connect with the addresses in the Blacklist.\n'True' or 'False'", r"^((True)|(False))$"],
                 ["Auto_Blacklist", "False", "Automatically Blacklist", "Automatically add addresses to the Blacklist if too many connections per minute.", r"^((True)|(False))$"],
                 ["Auto_Max", "300", "Maximum Connections per Minute", "Applies if Auto Blacklist is True.\nThe number of times in a minute an address can connect before being blacklisted.", r"^\d+$"],
-                ["Auth_Server", "None", "Authentication Server", "An LDAP or Active Directory server address.\nIf 'None' is specified, then no authentication will be required.", r""],
+                ["Auth_Server", "None", "Authentication Server", "An LDAP or Active Directory server address.\nAn optional portnumber can be specified after with myserver.com:port# syntax.\nIf 'None' is specified, then no authentication will be required.", r""],
                 ["Auth_Prefix", "", "Distinguished Name prefix", "The prefix before the username inorder to build the DN.\nFor Active Directory you might want something like 'DOMAIN\\'\nFor LDAP you may want something like 'cn='", r""],
                 ["Auth_Postfix", "", "Distinguished Name postfix", "The postfix after the username inorder to build the DN.\nFor Active Directory you might want something like '@mysite.org'\nFor LDAP you might want something like ',ou=accounts,dc=mysite,dc=org'", r""],
                 ["Auth_Base", "None", "Request Base", "The Base for the LDAP or Active Directory request.\nUsually something like 'dc=mysite,dc=org'", r""],
                 ["Auth_Usr_Attr", "None", "User Attribute", "The LDAP or Active Directory user attribute.", r""],
                 ["Auth_Grp_Attr", "None", "Group Attribute", "The LDAP or Active Direcory group attribute.", r""],
+                ["Auth_Secure", "False", "Use TLS for Authentication", "This enables Authentication over a secure connection.\nWithout this, passwords are not secure.", r"^((True)|(False))$"],
+                ["Auth_Cert", "None", "Authentication Server TLS Certificate", "This is the public certificate for the authentication server.\nWithout this connections will not be truly secure.", r""],
                 ["RGS_Ver_Min", "False", "RGS Minimum Version", "The earliest RGS version that can connect.\nIf you are not using RGS, put 'False'", r"^((False)|(\d+.\d+.\d+))$"],
                 ["Verbose_Out", "False", "Output to Screen", "Output not only to the log, but also to stdout.", r"^((True)|(False))$"],
                 ["Log_Amount", "3", "Verbosity Level", "The amount written out to the log database.\nA number from 0(none) to 4(highest).", r"^\d$"],
@@ -90,7 +92,7 @@ class Settings(object):
 
                         (self.finds("Use_Agents"),self.finds("Reserve_Time"),self.finds("Timeout_Time"),self.finds("Use_Blacklist"),self.finds("Auto_Blacklist"),self.finds("Auto_Max"),self.finds("One_Connection")),
 
-                        (self.finds("Auth_Server"),self.finds("Auth_Prefix"),self.finds("Auth_Postfix"),self.finds("Auth_Base"),self.finds("Auth_Usr_Attr"),self.finds("Auth_Grp_Attr")),
+                        (self.finds("Auth_Server"),self.finds("Auth_Prefix"),self.finds("Auth_Postfix"),self.finds("Auth_Base"),self.finds("Auth_Usr_Attr"),self.finds("Auth_Grp_Attr"),self.finds("Auth_Secure"),self.finds("Auth_Cert")),
                         
                         (self.finds("Log_Amount"),self.finds("Log_Keep"),self.finds("Log_Time")),
                         
@@ -102,7 +104,7 @@ class Settings(object):
                         
                         (self.finds("Database_Addr"),self.finds("Database_Port"),self.finds("Database_Usr"),self.finds("Database_Pass"),self.finds("Database_Name")),
                         
-                        (self.finds("Auth_Server"),self.finds("Auth_Prefix"),self.finds("Auth_Postfix"),self.finds("Auth_Base"),self.finds("Auth_Usr_Attr"),self.finds("Auth_Grp_Attr"), self.finds("Interface_Group")),
+                        (self.finds("Auth_Server"),self.finds("Auth_Prefix"),self.finds("Auth_Postfix"),self.finds("Auth_Base"),self.finds("Auth_Usr_Attr"),self.finds("Auth_Grp_Attr"),self.finds("Auth_Secure"),self.finds("Auth_Cert"),self.finds("Interface_Group")),
                         )
         elif which == "Client_Windows":
             settings = (
