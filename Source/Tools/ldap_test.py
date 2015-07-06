@@ -2,6 +2,7 @@
 import ldap
 import sys
 import os
+import time
 from getpass import getpass
 
 #global settings dictionary
@@ -20,9 +21,12 @@ def getAuthLDAP(user, password):
     try:
         if settings.get("Auth_Secure") == 'True':
             if settings.get("Auth_Cert") != 'None' and settings.get("Auth_Cert") is not None:
+                print "Using checking against certificate {0} for authentication over TLS".format(settings.get("Auth_Cert"))
                 ldap.set_option(ldap.OPT_X_TLS_CACERTFILE, settings.get("Auth_Cert"))
                 ldap.set_option(ldap.OPT_X_TLS_REQUIRE_CERT, ldap.OPT_X_TLS_DEMAND)
+                
             else:
+                print "Using to authenticate over TLS with no certificate check"
                 ldap.set_option(ldap.OPT_X_TLS_REQUIRE_CERT, ldap.OPT_X_TLS_NEVER)
         l = ldap.initialize(Server, trace_level=(1 if settings.get("Verbose")=='True' else 0))
         l.set_option(ldap.OPT_REFERRALS,0)
@@ -55,9 +59,10 @@ def getAuthLDAP(user, password):
     print "User {0} belongs to {1}".format(user, groups)
 
 def splash():
-    print "CABS LDAP and Active Directory authentication test"
+    print "CABS LDAP and Active Directory authentication test\n"
 
 def readConfigFile(filepath):
+    #only write if it isn't there already
     global settings
     if not os.path.isfile(filepath):
         print filepath, "is not a file."
@@ -79,7 +84,7 @@ def readConfigFile(filepath):
                             key = key.strip()
                             key = key[:-1]
                             val = ''
-                    settings[key] = val
+                    settings.setdefault(key, val)
             f.close()
     except:
         print "Could not open {0}".format(filepath)
@@ -92,7 +97,7 @@ def printUsage(extend=False):
         print "  -p                 : prompt for a password"
         print "  -P password        : use password to authenticate the user"
         print "  -f file.conf       : read settings from file.conf, instead of the command line"
-        print "  -s                 : attempt to secure the connection with TLS (requires -f)"
+        print "  -s                 : attempt to secure the connection with TLS (requires -c)"
         print "  -c certfile.pem    : use certfile.pem as the certificate for the server"
         print "  -h host            : the server's address"
         print "  -b prefix          : a prefix before username to make the DN"
@@ -104,6 +109,37 @@ def printUsage(extend=False):
     else:
         print "      : "+sys.argv[0]+" -? for extra info"
     sys.exit()
+
+def setServer(results):
+    results = results[0]
+    if results[0].payload.target:
+        print "Found Servers : ", (', '.join(str(x.payload.target) for x in results))
+        print "Using : ", results[0].payload.target
+        settings["Auth_Server"] = str(results[0].payload.target)
+    else:
+        reactor.stop()
+        print "Could not find an LDAP server"
+        sys.exit()
+
+def stopReactor(_):
+    reactor.stop()
+
+def serverLookup(domain):
+    global reactor
+    try:
+        from twisted.names import client
+        from twisted.internet import reactor
+    except:
+        print "AUTO server lookup not supported without Twisted-Python"
+        sys.exit()
+
+    domain = domain.replace('AUTO', '', 1)
+    domain = '_ldap._tcp' + domain
+    resolver = client.Resolver('/etc/resolv.conf')
+    d = resolver.lookupService(domain)
+    d.addCallback(setServer)
+    d.addBoth(stopReactor)
+    reactor.run()
 
 def getArgs():
     global settings
@@ -118,7 +154,7 @@ def getArgs():
         else:
             if sys.argv[i] in ['-?', '?', '--help', '-help']:
                 printUsage(True)
-            elif sys.argv[i] in ['-u', '--user']
+            elif sys.argv[i] in ['-u', '--user']:
                 option = "User"
             elif sys.argv[i] in ['-p', '--prompt', '--pass']:
                 settings["Password"] = getpass("Password : ")
@@ -157,6 +193,8 @@ def getArgs():
     if not settings.get("Auth_Server"):
         print "Valid authentication server required"
         printUsage()
+    elif settings.get("Auth_Server").startswith('AUTO'):
+        serverLookup(settings.get("Auth_Server"))
     if not settings.get("Auth_Prefix"):
         settings["Auth_Prefix"] = ''
     if not settings.get("Auth_Postfix"):
@@ -170,8 +208,8 @@ def getArgs():
         settings["Auth_Grp_Attr"] = 'memberOf'
 
 def main():
-    getArgs()
     splash()
+    getArgs()
     if settings.get("Verbose") == 'True':
         print "Settings : "
         for item in settings:

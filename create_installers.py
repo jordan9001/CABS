@@ -37,7 +37,7 @@ class Settings(object):
                 ["Use_Blacklist", "True", "Use The Blacklist", "Refuse to connect with the addresses in the Blacklist.\n'True' or 'False'", r"^((True)|(False))$"],
                 ["Auto_Blacklist", "False", "Automatically Blacklist", "Automatically add addresses to the Blacklist if too many connections per minute.", r"^((True)|(False))$"],
                 ["Auto_Max", "300", "Maximum Connections per Minute", "Applies if Auto Blacklist is True.\nThe number of times in a minute an address can connect before being blacklisted.", r"^\d+$"],
-                ["Auth_Server", "None", "Authentication Server", "An LDAP or Active Directory server address.\nAn optional portnumber can be specified after with myserver.com:port# syntax.\nIf 'None' is specified, then no authentication will be required.", r""],
+                ["Auth_Server", "None", "Authentication Server", "An LDAP or Active Directory server address.\nAn optional portnumber can be specified after with myserver.com:port# syntax.\nIf 'AUTO.mydomain.com' is specified (with your network domain), then the server will try to find a LDAP server through a DNS SRV query on that domain.\nIf 'None' is specified, then no authentication will be required.", r""],
                 ["Auth_Prefix", "", "Distinguished Name prefix", "The prefix before the username inorder to build the DN.\nFor Active Directory you might want something like 'DOMAIN\\'\nFor LDAP you may want something like 'cn='", r""],
                 ["Auth_Postfix", "", "Distinguished Name postfix", "The postfix after the username inorder to build the DN.\nFor Active Directory you might want something like '@mysite.org'\nFor LDAP you might want something like ',ou=accounts,dc=mysite,dc=org'", r""],
                 ["Auth_Base", "None", "Request Base", "The Base for the LDAP or Active Directory request.\nUsually something like 'dc=mysite,dc=org'", r""],
@@ -183,6 +183,7 @@ def Server(settingsobj):
     #copy the script and the installer scripts
     copy2(base+"/Source/Broker/CABS_server.py",path+"/CABS_server.py")
     copy2(base+"/Source/Broker/build/installer.sh",path+"/installer.sh")
+    copy2(base+"/Source/Broker/build/Run_Broker.sh",path+"/Run_Broker.sh")
     copy2(base+"/Source/Broker/build/setupDatabase.py",path+"/setupDatabase.py")
     
     authcert = settingsobj.finds("Auth_Cert")[1]
