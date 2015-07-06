@@ -26,6 +26,7 @@ pip install django
 pip install python-ldap
 pip install django_auth_ldap
 pip install MySQL-python
+pip install dnspython
 django-admin.py startproject admin_tools .
 
 #configure apache

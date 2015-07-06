@@ -110,8 +110,29 @@ AUTH_LDAP_START_TLS = True
     output_string += """
 AUTH_LDAP_USER_DN_TEMPLATE = "{auth_prefix}%(user)s{auth_postfix}"
 AUTH_LDAP_BIND_AS_AUTHENTICATING_USER = True
+""".format(auth_prefix=settings.get("Auth_Prefix"), auth_postfix=settings.get("Auth_Postfix"))
+
+    if settings.get("Auth_Server").startswith('AUTO') or settings.get("Auth_Server").startswith('ldap://AUTO'):
+        output_string += """
+def findServer(domain):
+    import dns.resolver
+    domain = domain.replace('AUTO', '', 1)
+    domain = domain.replace('ldap://', '')
+    domain = domain.replace('ldaps://','')
+    domain = '_ldap._tcp' + domain
+    resolver = dns.resolver.Resolver()
+    result = resolver.query(domain, 'SRV')
+    server = result[0].target.to_text().strip('.')
+    if not server.startswith("ldap://") and not server.startswith("ldaps://"):
+        server = "ldap://" + server
+    return server
+
+AUTH_LDAP_SERVER_URI = findServer("{auth_server}")
+""".format(auth_server=settings.get("Auth_Server"))
+    else:
+        output_string += """
 AUTH_LDAP_SERVER_URI = "ldap://{auth_server}"
-""".format(auth_prefix=settings.get("Auth_Prefix"), auth_postfix=settings.get("Auth_Postfix"), auth_server=settings.get("Auth_Server"))
+""".format(auth_server=settings.get("Auth_Server"))
 
     output_string += """
 AUTH_LDAP_CONNECTION_OPTIONS = {

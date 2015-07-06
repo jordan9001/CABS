@@ -62,7 +62,22 @@ AUTHENTICATION_BACKENDS = (
 )
 AUTH_LDAP_USER_DN_TEMPLATE = "CAEDM_AD\\%(user)s"
 AUTH_LDAP_BIND_AS_AUTHENTICATING_USER = True
-AUTH_LDAP_SERVER_URI = "ldap://ad01.et.byu.edu"
+
+#Find AUTO Auth Server
+def findServer(domain):
+    import dns.resolver
+    domain = domain.replace('AUTO', '', 1)
+    domain = domain.replace('ldap://', '')
+    domain = domain.replace('ldaps://','')
+    domain = '_ldap._tcp' + domain
+    resolver = dns.resolver.Resolver()
+    result = resolver.query(domain, 'SRV')
+    server = result[0].target.to_text().strip('.')
+    if not server.startswith("ldap://") and not server.startswith("ldaps://"):
+        server = "ldap://" + server
+    return server
+
+AUTH_LDAP_SERVER_URI = findServer("AUTO.et.byu.edu")
 import ldap
 from django_auth_ldap.config import LDAPSearch, MemberDNGroupType
 AUTH_LDAP_CONNECTION_OPTIONS = {
