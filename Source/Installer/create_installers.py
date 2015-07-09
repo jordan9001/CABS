@@ -37,12 +37,14 @@ class Settings(object):
                 ["Use_Blacklist", "True", "Use The Blacklist", "Refuse to connect with the addresses in the Blacklist.\n'True' or 'False'", r"^((True)|(False))$"],
                 ["Auto_Blacklist", "False", "Automatically Blacklist", "Automatically add addresses to the Blacklist if too many connections per minute.", r"^((True)|(False))$"],
                 ["Auto_Max", "300", "Maximum Connections per Minute", "Applies if Auto Blacklist is True.\nThe number of times in a minute an address can connect before being blacklisted.", r"^\d+$"],
-                ["Auth_Server", "None", "Authentication Server", "An LDAP or Active Directory server address.\nIf 'None' is specified, then no authentication will be required.", r""],
+                ["Auth_Server", "None", "Authentication Server", "An LDAP or Active Directory server address.\nAn optional portnumber can be specified after with myserver.com:port# syntax.\nIf 'AUTO.mydomain.com' is specified (with your network domain), then the server will try to find a LDAP server through a DNS SRV query on that domain.\nIf 'None' is specified, then no authentication will be required.", r""],
                 ["Auth_Prefix", "", "Distinguished Name prefix", "The prefix before the username inorder to build the DN.\nFor Active Directory you might want something like 'DOMAIN\\'\nFor LDAP you may want something like 'cn='", r""],
                 ["Auth_Postfix", "", "Distinguished Name postfix", "The postfix after the username inorder to build the DN.\nFor Active Directory you might want something like '@mysite.org'\nFor LDAP you might want something like ',ou=accounts,dc=mysite,dc=org'", r""],
                 ["Auth_Base", "None", "Request Base", "The Base for the LDAP or Active Directory request.\nUsually something like 'dc=mysite,dc=org'", r""],
                 ["Auth_Usr_Attr", "None", "User Attribute", "The LDAP or Active Directory user attribute.", r""],
                 ["Auth_Grp_Attr", "None", "Group Attribute", "The LDAP or Active Direcory group attribute.", r""],
+                ["Auth_Secure", "False", "Use TLS for Authentication", "This enables Authentication over a secure connection.\nWithout this, passwords are not secure.", r"^((True)|(False))$"],
+                ["Auth_Cert", "None", "Authentication Server TLS Certificate", "This is the public certificate for the authentication server.\nWithout this connections will not be truly secure.", r"^((\w+.pem)|(None))$"],
                 ["RGS_Ver_Min", "False", "RGS Minimum Version", "The earliest RGS version that can connect.\nIf you are not using RGS, put 'False'", r"^((False)|(\d+.\d+.\d+))$"],
                 ["Verbose_Out", "False", "Output to Screen", "Output not only to the log, but also to stdout.", r"^((True)|(False))$"],
                 ["Log_Amount", "3", "Verbosity Level", "The amount written out to the log database.\nA number from 0(none) to 4(highest).", r"^\d$"],
@@ -56,7 +58,9 @@ class Settings(object):
                 ["#Org_Name", "", "Organization Name", "The Organization name for the SSL certificate", r"^[^/]*$"],
                 ["#Com_Name", "CABS_Server", "The Server's Name", "The Common name for the SSL certificate, usually the server name.", r"^[^/]+$"],
                 #Interface Installation
-                ["Interface_Group", "", "Admin Group", "The LDAP or Active Directory group that can access the Interface\nThis should be the whole identifier line.\nSomething like: cn=group,ou=our groups,ou=departments,dc=example,dc=com", r""],
+                ["Interface_Edit", "", "Interface Edit Group", "The LDAP or Active Directory group(s) that can change settings on the Interface.\nThis should be just the name as it appears in the LDAP group(s).\nMultiple groups should be separated by commas.\nAn empty group allows every user.", r""],
+                ["Interface_Disable", "", "Interface Disable Group", "The LDAP or Active Directory group(s) that can disable machines and pools on the Interface.\nThis should be just the name as it appears in the LDAP group(s).\nMultiple groups should be separated by commas.\nAn empty group allows every user.", r""],
+                ["Interface_View", "", "Interface View Group", "The LDAP or Active Directory group(s) that can only view pages on the Interface.\nThis should be just the name as it appears in the LDAP group(s).\nMultiple groups should be separated by commas.\nAn empty group allows every user.", r""],
                 ["Create_Server", "False", "Create New Apache Webserver", "Create a new apache2 webserver from script, installing all the proper components.\nIf this is False, the installer will just give you the Django application.\nIt is recommended you set up your own server.", r"^((True)|(False))$"],
                 ["Interface_Distro", "Debian", "Linux Distribution", "If you are using this installer, you must use: Debian (or something close).", r"^Debian$"],
                 ["Interface_Host_Addr", "", "Interface Host Addresses", "The allowed hosts (website names) for your Interface.\nSeparate addresses with a space\nPut * for all hosts (insecure).", r""],
@@ -90,7 +94,7 @@ class Settings(object):
 
                         (self.finds("Use_Agents"),self.finds("Reserve_Time"),self.finds("Timeout_Time"),self.finds("Use_Blacklist"),self.finds("Auto_Blacklist"),self.finds("Auto_Max"),self.finds("One_Connection")),
 
-                        (self.finds("Auth_Server"),self.finds("Auth_Prefix"),self.finds("Auth_Postfix"),self.finds("Auth_Base"),self.finds("Auth_Usr_Attr"),self.finds("Auth_Grp_Attr")),
+                        (self.finds("Auth_Server"),self.finds("Auth_Prefix"),self.finds("Auth_Postfix"),self.finds("Auth_Base"),self.finds("Auth_Usr_Attr"),self.finds("Auth_Grp_Attr"),self.finds("Auth_Secure"),self.finds("Auth_Cert")),
                         
                         (self.finds("Log_Amount"),self.finds("Log_Keep"),self.finds("Log_Time")),
                         
@@ -102,7 +106,7 @@ class Settings(object):
                         
                         (self.finds("Database_Addr"),self.finds("Database_Port"),self.finds("Database_Usr"),self.finds("Database_Pass"),self.finds("Database_Name")),
                         
-                        (self.finds("Auth_Server"),self.finds("Auth_Prefix"),self.finds("Auth_Postfix"),self.finds("Auth_Base"),self.finds("Auth_Usr_Attr"),self.finds("Auth_Grp_Attr"), self.finds("Interface_Group")),
+                        (self.finds("Auth_Server"),self.finds("Auth_Prefix"),self.finds("Auth_Postfix"),self.finds("Auth_Base"),self.finds("Auth_Usr_Attr"),self.finds("Auth_Grp_Attr"),self.finds("Auth_Secure"),self.finds("Auth_Cert"),self.finds("Interface_Edit"),self.finds("Interface_Disable"),self.finds("Interface_View")),
                         )
         elif which == "Client_Windows":
             settings = (
@@ -181,7 +185,16 @@ def Server(settingsobj):
     #copy the script and the installer scripts
     copy2(base+"/Source/Broker/CABS_server.py",path+"/CABS_server.py")
     copy2(base+"/Source/Broker/build/installer.sh",path+"/installer.sh")
+    copy2(base+"/Source/Broker/build/Run_Broker.sh",path+"/Run_Broker.sh")
     copy2(base+"/Source/Broker/build/setupDatabase.py",path+"/setupDatabase.py")
+    
+    authcert = settingsobj.finds("Auth_Cert")[1]
+    if authcert != 'None':
+        try:
+            copy2(base+"/Source/Shared/"+authcert, path+"/"+authcert)
+        except:
+            with open(path+"/WARNING.txt", 'w') as f:
+                f.write("Could not find {0}, make sure to provide it.".format(authcert))
     
     zipit(path, "CABS_Server")
 
@@ -214,6 +227,14 @@ def Interface(settingsobj):
     sslkey = settingsobj.finds("SSL_Priv_Key")[1]
     if sslkey != "None" and  os.path.isfile(base+"/Source/Shared/"+sslkey):
         copy2(base+"/Source/Shared/"+sslkey, path+"/"+sslkey)
+    
+    authcert = settingsobj.finds("Auth_Cert")[1]
+    if authcert != 'None':
+        try:
+            copy2(base+"/Source/Shared/"+authcert, path+"/"+authcert)
+        except:
+            with open(path+"/WARNING.txt", 'w') as f:
+                f.write("Could not find {0}, make sure to provide it.".format(authcert))
     
     zipit(path, "CABS_Interface")
 
@@ -343,6 +364,8 @@ def makeKeys(base, path, settingsobj):
     command = ["openssl", "req", "-x509", "-nodes", "-newkey", "rsa:2048", "-keyout", privkey, "-out", cacert, "-days", "24800", "-subj", subjstring]
     p = subprocess.Popen(command, cwd=path)
     (out,err) = p.communicate() #block until finished
+    if not os.path.exists(base+"/Source/Shared"):
+        os.makedirs(base+"/Source/Shared")
     copy2(path+"/"+cacert, base+"/Source/Shared/"+cacert)
     copy2(path+"/"+privkey, base+"/Source/Shared/"+privkey)
  
