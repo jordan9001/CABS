@@ -24,13 +24,15 @@ Hover over the Disabled buttons to see the reason why they were disabled.
         <form action="{% url 'cabs_admin:toggleMachines' %}" method="post">
         {% csrf_token %}
         <input type="hidden" name="machine" value="{{machine.machine}}">
-        <td> {{machine.machine}} </td>
-        <td> {{machine.name}} </td>
-        <td> {{machine.user}} </td>
+        <td> {{ machine.machine }} </td>
+        <td> {{ machine.name }} </td>
+        <td> {{ machine.user }} </td>
         <td> 
-        {{machine.active}}
+        {{ machine.active }}
+        {% if machine.name != "No Pool" %}
         <input class="button rm" type="submit" name="rm" value="X">
         <button class="button rm" type="submit" name="toggle" value="{{machine.machine}}" {% if machine.deactivated %} title="{{machine.reason}}"style="background-color: black; color: white">Disabled{% else %}>Enabled{% endif %}</button>
+        {% endif %}
         </form>
         </td>
     </tr>
