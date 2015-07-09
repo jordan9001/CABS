@@ -23,18 +23,22 @@
 . /etc/init.d/functions
 
 retval=0
+dir=/usr/lib/CABS/
 exec=/usr/lib/CABS/cabsagentd
 lockfile=/var/lock/subsys/cabsagentd
 config=/user/lib/CABS/CABS_agent.conf
 
 start() {
-    if [ $UID -ne 0]; then
+    if [ $UID -ne 0 ]; then
         echo "User has insufficient privilege."
         exit 4
     fi
     if [ ! -f $lockfile ]; then
-        echo -n $"Starting $prog:"
+        echo -n $"Starting $exec:"
+	olddir=$(pwd)
+	cd $dir
         daemon $exec
+	dc $olddir
         retval=$?
         ##create lockfile
         [ $retval -eq 0 ] && touch $lockfile
@@ -45,7 +49,7 @@ start() {
 }
 
 stop() {
-    echo -n "Stopping $prog: "
+    echo -n "Stopping $exec: "
     killproc $exec
     ##delete lockfile
     rm -f $lockfile
