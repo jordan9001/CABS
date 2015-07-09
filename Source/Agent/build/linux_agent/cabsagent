@@ -35,13 +35,13 @@ start() {
     fi
     if [ ! -f $lockfile ]; then
         echo -n $"Starting $exec:"
-	olddir=$(pwd)
-	cd $dir
-        daemon $exec
-	dc $olddir
+        olddir=$(pwd)
+        cd $dir
+        #to redirect the output, change /dev/null to a logfile
+        nohup $exec > /dev/null 2>&1 & echo $! > $lockfile
         retval=$?
+        cd $olddir
         ##create lockfile
-        [ $retval -eq 0 ] && touch $lockfile
         success "Starting CABS_Agent"
     else
         echo -n "Lockfile exists already."
@@ -50,7 +50,7 @@ start() {
 
 stop() {
     echo -n "Stopping $exec: "
-    killproc $exec
+    kill -9 $( cat $lockfile )
     ##delete lockfile
     rm -f $lockfile
 }
