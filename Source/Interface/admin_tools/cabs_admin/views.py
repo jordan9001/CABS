@@ -2,7 +2,7 @@ from django.shortcuts import render, render_to_response
 from django.http import HttpResponseRedirect
 from django.core.urlresolvers import reverse
 from django.contrib.auth import views
-from django.contrib.auth.decorators import login_required
+from django.contrib.auth.decorators import login_required, user_passes_test
 
 from cabs_admin.models import Machines
 from cabs_admin.models import Pools
@@ -11,13 +11,61 @@ from cabs_admin.models import Blacklist
 from cabs_admin.models import Whitelist
 from cabs_admin.models import Log
 
+from django.conf import settings
+
+def can_view(user):
+    if len(settings.CABS_LDAP_CAN_VIEW_GROUPS) == 0:
+        return True
+    can = False
+    for group in settings.CABS_LDAP_CAN_VIEW_GROUPS:
+        can = can or user.groups.filter(name=group).count() > 0
+    
+    if not can:
+        can = can or can_disable(user)
+    
+    return can 
+
+def can_disable(user):
+    if len(settings.CABS_LDAP_CAN_DISABLE_GROUPS) == 0:
+        return True
+    can = False
+    for group in settings.CABS_LDAP_CAN_DISABLE_GROUPS:
+        can = can or user.groups.filter(name=group).count() > 0
+    
+    if not can:
+        can = can or can_edit(user)
+    
+    return can 
+
+def can_edit(user):
+    if len(settings.CABS_LDAP_CAN_EDIT_GROUPS) == 0:
+        return True
+    can = False
+    for group in settings.CABS_LDAP_CAN_EDIT_GROUPS:
+        can = can or user.groups.filter(name=group).count() > 0
+ 
+    return can
+
 def index(request):
     context = {}
     if not request.user.is_authenticated():
         template_response = views.login(request, template_name='cabs_admin/logindex.html', current_app='cabs_admin', extra_context=context)
         return template_response
     else:
-        user_string = "Logged in as {0}".format(request.user.get_username())
+        #print "Groups", request.user.groups.all()
+        #print "Can Edit", can_edit(request.user)
+        #print "Can Disable", can_disable(request.user)
+        #print "Can View", can_view(request.user)
+        #print "can_edit", " ".join(x for x in settings.CABS_LDAP_CAN_EDIT_GROUPS)
+        #print "can_disable", " ".join(x for x in settings.CABS_LDAP_CAN_DISABLE_GROUPS)
+        #print "can_view", " ".join(x for x in settings.CABS_LDAP_CAN_VIEW_GROUPS)
+        if can_view(request.user):
+            permissions = (" Change" if can_edit(request.user) else "")
+            permissions += (" Disable" if can_disable(request.user) else "")
+            permissions += (" and View" if len(permissions) > 0 else "View")
+            user_string = "User {0} can:{1}".format(request.user.get_username(), permissions)
+        else:
+            user_string = "User {0} has no permissions".format(request.user.get_username())
         context['section_name'] = user_string 
         return render(request, 'cabs_admin/index.html', context)
 
@@ -26,12 +74,14 @@ def logoutView(request):
     return template_response
 
 @login_required
+@user_passes_test(can_view, login_url='/admin/')
 def machinesPage(request, selected_machine=None):
     machine_list = Machines.objects.using('cabs').all()
     context = {'section_name': 'Machines', 'machine_list': machine_list, 'selected_machine': selected_machine}
     return render(request, 'cabs_admin/machines.html', context)
 
 @login_required
+@user_passes_test(can_edit, login_url='/admin/')
 def setMachines(request):
     try: 
         new_name = request.POST['name']
@@ -50,6 +100,7 @@ def setMachines(request):
         return HttpResponseRedirect(reverse('cabs_admin:machinesPage'))
 
 @login_required
+@user_passes_test(can_disable, login_url='/admin/')
 def toggleMachines(request):
     try:
         selected_machine = ""
@@ -75,6 +126,7 @@ def toggleMachines(request):
             return HttpResponseRedirect(reverse('cabs_admin:machinesPage'))
 
 @login_required
+@user_passes_test(can_disable, login_url='/admin/')
 def commentMachines(request):
     try:
         choosen_machine = request.POST['machine']
@@ -88,12 +140,14 @@ def commentMachines(request):
         return HttpResponseRedirect(reverse('cabs_admin:machinesPage'))
 
 @login_required
+@user_passes_test(can_view, login_url='/admin/')
 def poolsPage(request, selected_pool=None):
     pool_list = Pools.objects.using('cabs').all()
     context = {'section_name': 'Pools', 'pool_list': pool_list, 'selected_pool': selected_pool}
     return render(request, 'cabs_admin/pools.html', context)
 
 @login_required
+@user_passes_test(can_edit, login_url='/admin/')
 def setPools(request):
     try:
         new_pool = request.POST['name']
@@ -122,6 +176,7 @@ def setPools(request):
         return HttpResponseRedirect(reverse('cabs_admin:poolsPage'))
 
 @login_required
+@user_passes_test(can_disable, login_url='/admin/')
 def togglePools(request): 
     try:
         selected_pool = ""
@@ -145,6 +200,7 @@ def togglePools(request):
             return HttpResponseRedirect(reverse('cabs_admin:poolsPage'))
 
 @login_required
+@user_passes_test(can_disable, login_url='/admin/')
 def commentPools(request):
     try:
         choosen_pool = request.POST['pool']
@@ -157,7 +213,8 @@ def commentPools(request):
     else:
         return HttpResponseRedirect(reverse('cabs_admin:poolsPage'))
 
-@login_required
+@login_required 
+@user_passes_test(can_view, login_url='/admin/')
 def settingsPage(request):
     settings_list = Settings.objects.using('cabs').all()
     try:
@@ -168,6 +225,7 @@ def settingsPage(request):
     return render(request, 'cabs_admin/settings.html', context)
 
 @login_required
+@user_passes_test(can_edit, login_url='/admin/')
 def setSettings(request):
     try:
         new_value = request.POST['value']
@@ -186,6 +244,7 @@ def setSettings(request):
         return HttpResponseRedirect(reverse('cabs_admin:settingsPage'))
 
 @login_required
+@user_passes_test(can_edit, login_url='/admin/')
 def rmSettings(request):
     try:
         choosen_setting = request.POST['setting']
@@ -197,6 +256,7 @@ def rmSettings(request):
         return HttpResponseRedirect(reverse('cabs_admin:settingsPage'))
 
 @login_required
+@user_passes_test(can_view, login_url='/admin/')
 def blacklistPage(request):
     black_list = Blacklist.objects.using('cabs').all().order_by('-banned')
     white_list = Whitelist.objects.using('cabs').all()
@@ -204,6 +264,7 @@ def blacklistPage(request):
     return render(request, 'cabs_admin/blacklist.html', context)
 
 @login_required
+@user_passes_test(can_edit, login_url='/admin/')
 def setBlacklist(request):
     try:
         new_address = request.POST['address']
@@ -223,6 +284,7 @@ def setBlacklist(request):
         return HttpResponseRedirect(reverse('cabs_admin:blacklistPage'))
 
 @login_required
+@user_passes_test(can_disable, login_url='/admin/')
 def toggleBlacklist(request): 
     try:
         choosen_address = request.POST['address']
@@ -248,6 +310,7 @@ def toggleBlacklist(request):
         return HttpResponseRedirect(reverse('cabs_admin:blacklistPage'))
 
 @login_required
+@user_passes_test(can_edit, login_url='/admin/')
 def setWhitelist(request):
     try:
         new_address = request.POST['address']
@@ -266,6 +329,7 @@ def setWhitelist(request):
         return HttpResponseRedirect(reverse('cabs_admin:blacklistPage'))
 
 @login_required
+@user_passes_test(can_edit, login_url='/admin/')
 def rmWhitelist(request):
     try:
         choosen_address = request.POST['address']
@@ -277,6 +341,7 @@ def rmWhitelist(request):
         return HttpResponseRedirect(reverse('cabs_admin:blacklistPage'))
 
 @login_required
+@user_passes_test(can_view, login_url='/admin/')
 def historyPage(request):
     if request.GET.get('position'):
         i = int(request.GET.get('position'))

@@ -56,18 +56,11 @@ SESSION_EXPIRE_AT_BROWSER_CLOSE = True
 #CSRF_COOKIE_SECURE = True
 
 # Django-auth-ldap
-AUTHENTICATION_BACKENDS = (
-    'django_auth_ldap.backend.LDAPBackend',
-    #'django.contrib.auth.backends.ModelBackend',
-)
-AUTH_LDAP_USER_DN_TEMPLATE = "CAEDM_AD\\%(user)s"
-AUTH_LDAP_BIND_AS_AUTHENTICATING_USER = True
 
-#Find AUTO Auth Server
 def findServer(domain):
     import dns.resolver
     domain = domain.replace('AUTO', '', 1)
-    domain = domain.replace('ldap://', '')
+    domain = domain.replace('ldap://', '') 
     domain = domain.replace('ldaps://','')
     domain = '_ldap._tcp' + domain
     resolver = dns.resolver.Resolver()
@@ -77,19 +70,39 @@ def findServer(domain):
         server = "ldap://" + server
     return server
 
+
+AUTHENTICATION_BACKENDS = (
+    'django_auth_ldap.backend.LDAPBackend',
+    'django.contrib.auth.backends.ModelBackend',
+)
+AUTH_LDAP_USER_DN_TEMPLATE = "CAEDM_AD\\%(user)s"
+AUTH_LDAP_BIND_AS_AUTHENTICATING_USER = True
+
 AUTH_LDAP_SERVER_URI = findServer("AUTO.et.byu.edu")
 import ldap
 from django_auth_ldap.config import LDAPSearch, MemberDNGroupType
 AUTH_LDAP_CONNECTION_OPTIONS = {
-    ldap.OPT_DEBUG_LEVEL: 1,
+    ldap.OPT_DEBUG_LEVEL: 9,
     ldap.OPT_REFERRALS: 0,
 }
 AUTH_LDAP_USER_SEARCH = LDAPSearch("dc=et,dc=byu,dc=edu", ldap.SCOPE_SUBTREE, "(cn=%(user)s)")
 
 AUTH_LDAP_GROUP_TYPE = MemberDNGroupType('member')
 AUTH_LDAP_GROUP_SEARCH = LDAPSearch("dc=et,dc=byu,dc=edu", ldap.SCOPE_SUBTREE)
-AUTH_LDAP_REQUIRE_GROUP = "cn=caedm_admin_level1,ou=caedm groups,ou=security groups,ou=caedm,ou=departments,dc=et,dc=byu,dc=edu"
+#AUTH_LDAP_REQUIRE_GROUP = "cn=caedm_admin_level1,ou=caedm groups,ou=security groups,ou=caedm,ou=departments,dc=et,dc=byu,dc=edu"
+AUTH_LDAP_MIRROR_GROUPS = True
 
+CABS_LDAP_CAN_EDIT_GROUPS = [
+    "caedm_admin_level3",
+]
+CABS_LDAP_CAN_DISABLE_GROUPS = [
+    "xcpiso",
+    "caedm_admin_level2",
+]
+CABS_LDAP_CAN_VIEW_GROUPS = [
+    "caedm_admin_level1",
+    "caedm_admin_level2",
+]
 
 LOGIN_URL = "cabs_admin:index"
 LOGIN_REDIRECT_URL = 'cabs_admin:index'

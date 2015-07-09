@@ -145,8 +145,32 @@ AUTH_LDAP_USER_SEARCH = LDAPSearch("{auth_base}", ldap.SCOPE_SUBTREE, "({auth_us
 
 AUTH_LDAP_GROUP_TYPE = MemberDNGroupType('member')
 AUTH_LDAP_GROUP_SEARCH = LDAPSearch('{auth_base}', ldap.SCOPE_SUBTREE)
-AUTH_LDAP_REQUIRE_GROUP = "{auth_allowed_group}"
-""".format(auth_base=settings.get("Auth_Base"), auth_user_attr=settings.get("Auth_Usr_Attr"), auth_allowed_group=settings.get("Interface_Group"))
+AUTH_LDAP_MIRROR_GROUPS = True
+""".format(auth_base=settings.get("Auth_Base"), auth_user_attr=settings.get("Auth_Usr_Attr"))
+    
+    output_string += """
+CABS_LDAP_CAN_EDIT_GROUPS = [
+"""
+    for group in settings.get("Interface_Edit").split(','):
+        output_string += '    "' + group.strip() + '",\n'
+
+    output_string += """
+]
+CABS_LDAP_CAN_DISABLE_GROUPS = [
+"""
+    for group in settings.get("Interface_Disable").split(','):
+        output_string += '    "' + group.strip() + '",\n'
+
+    output_string += """
+]
+CABS_LDAP_CAN_VIEW_GROUPS = [
+"""
+    for group in settings.get("Interface_View").split(','):
+        output_string += '    "' + group.strip() + '",\n'
+
+    output_string += """
+]
+"""
 
     output_string += """
 LOGIN_URL = "cabs_admin:index"

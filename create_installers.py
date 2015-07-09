@@ -58,7 +58,9 @@ class Settings(object):
                 ["#Org_Name", "", "Organization Name", "The Organization name for the SSL certificate", r"^[^/]*$"],
                 ["#Com_Name", "CABS_Server", "The Server's Name", "The Common name for the SSL certificate, usually the server name.", r"^[^/]+$"],
                 #Interface Installation
-                ["Interface_Group", "", "Admin Group", "The LDAP or Active Directory group that can access the Interface\nThis should be the whole identifier line.\nSomething like: cn=group,ou=our groups,ou=departments,dc=example,dc=com", r""],
+                ["Interface_Edit", "", "Interface Edit Group", "The LDAP or Active Directory group(s) that can change settings on the Interface.\nThis should be just the name as it appears in the LDAP group(s).\nMultiple groups should be separated by commas.\nAn empty group allows every user.", r""],
+                ["Interface_Disable", "", "Interface Disable Group", "The LDAP or Active Directory group(s) that can disable machines and pools on the Interface.\nThis should be just the name as it appears in the LDAP group(s).\nMultiple groups should be separated by commas.\nAn empty group allows every user.", r""],
+                ["Interface_View", "", "Interface View Group", "The LDAP or Active Directory group(s) that can only view pages on the Interface.\nThis should be just the name as it appears in the LDAP group(s).\nMultiple groups should be separated by commas.\nAn empty group allows every user.", r""],
                 ["Create_Server", "False", "Create New Apache Webserver", "Create a new apache2 webserver from script, installing all the proper components.\nIf this is False, the installer will just give you the Django application.\nIt is recommended you set up your own server.", r"^((True)|(False))$"],
                 ["Interface_Distro", "Debian", "Linux Distribution", "If you are using this installer, you must use: Debian (or something close).", r"^Debian$"],
                 ["Interface_Host_Addr", "", "Interface Host Addresses", "The allowed hosts (website names) for your Interface.\nSeparate addresses with a space\nPut * for all hosts (insecure).", r""],
@@ -104,7 +106,7 @@ class Settings(object):
                         
                         (self.finds("Database_Addr"),self.finds("Database_Port"),self.finds("Database_Usr"),self.finds("Database_Pass"),self.finds("Database_Name")),
                         
-                        (self.finds("Auth_Server"),self.finds("Auth_Prefix"),self.finds("Auth_Postfix"),self.finds("Auth_Base"),self.finds("Auth_Usr_Attr"),self.finds("Auth_Grp_Attr"),self.finds("Auth_Secure"),self.finds("Auth_Cert"),self.finds("Interface_Group")),
+                        (self.finds("Auth_Server"),self.finds("Auth_Prefix"),self.finds("Auth_Postfix"),self.finds("Auth_Base"),self.finds("Auth_Usr_Attr"),self.finds("Auth_Grp_Attr"),self.finds("Auth_Secure"),self.finds("Auth_Cert"),self.finds("Interface_Edit"),self.finds("Interface_Disable"),self.finds("Interface_View")),
                         )
         elif which == "Client_Windows":
             settings = (
