@@ -17,19 +17,22 @@ Hover over the Disabled buttons to see the reason why they were disabled.
 {% endif %}
 </div>
 <table class="table_list">
-    <tr><td> Machine </td><td> Pool </td><td> Active </td></tr>
+    <tr><td> Machine </td><td> Pool </td><td> User </td><td> Active </td></tr>
     <tr></tr>
 {% for machine in machine_list %}
     <tr>
         <form action="{% url 'cabs_admin:toggleMachines' %}" method="post">
         {% csrf_token %}
         <input type="hidden" name="machine" value="{{machine.machine}}">
-        <td> {{machine.machine}} </td>
-        <td> {{machine.name}} </td>
+        <td> {{ machine.machine }} </td>
+        <td> {{ machine.name }} </td>
+        <td> {{ machine.user }} </td>
         <td> 
-        {{machine.active}}
+        {{ machine.active }}
+        {% if machine.name != "No Pool" %}
         <input class="button rm" type="submit" name="rm" value="X">
         <button class="button rm" type="submit" name="toggle" value="{{machine.machine}}" {% if machine.deactivated %} title="{{machine.reason}}"style="background-color: black; color: white">Disabled{% else %}>Enabled{% endif %}</button>
+        {% endif %}
         </form>
         </td>
     </tr>
@@ -45,7 +48,12 @@ Hover over the Disabled buttons to see the reason why they were disabled.
     <label>Machine Name:</label>
     <input type="text" name="machine" title="Machine Name" pattern="^\w+$">
     <label>Pool:</label>
-    <input type="text" name="name" title="Machine Pool" pattern="^\w+$">
+    <select class="main_choice" name="name" title="Machine Pool">
+        <option value="" disabled >Choose a Pool</option>
+        {% for pool in pool_list %}
+        <option value="{{ pool.name }}" > {{ pool.name }} </option>
+        {% endfor %}
+    </select>
     <input class="button" type="submit" value="Submit">
     </form>
 </div>

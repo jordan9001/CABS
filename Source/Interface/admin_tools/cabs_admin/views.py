@@ -5,6 +5,7 @@ from django.contrib.auth import views
 from django.contrib.auth.decorators import login_required, user_passes_test
 
 from cabs_admin.models import Machines
+from cabs_admin.models import Current
 from cabs_admin.models import Pools
 from cabs_admin.models import Settings
 from cabs_admin.models import Blacklist
@@ -12,6 +13,8 @@ from cabs_admin.models import Whitelist
 from cabs_admin.models import Log
 
 from django.conf import settings
+
+import collections
 
 def can_view(user):
     if len(settings.CABS_LDAP_CAN_VIEW_GROUPS) == 0:
@@ -76,8 +79,28 @@ def logoutView(request):
 @login_required
 @user_passes_test(can_view, login_url='/admin/')
 def machinesPage(request, selected_machine=None):
-    machine_list = Machines.objects.using('cabs').all()
-    context = {'section_name': 'Machines', 'machine_list': machine_list, 'selected_machine': selected_machine}
+    c_list = Current.objects.using('cabs').all()
+    m_list = Machines.objects.using('cabs').all()
+    
+    machine_info = collections.namedtuple('machine', ['machine', 'name', 'active', 'user'])
+    machine_list = []
+    
+    for m in m_list: 
+        user = ''
+        for c in c_list:
+            if m.machine == c.machine:
+                user = c.user
+                c_list.remove(c)
+        item = machine_info(machine=m.machine, name=m.name, active=m.active, user=user)
+        machine_list.append(item)
+    #if there are left over users logged into machines we don't track, let's report those as well
+    for c in c_list:
+        item = machine_info(machine=c.machine, name='No Pool', active=True, user=c.user)
+        machine_list.append(item)
+    
+    pool_list = Pools.objects.using('cabs').all()
+    
+    context = {'section_name': 'Machines', 'machine_list': machine_list, 'selected_machine': selected_machine, 'pool_list': pool_list}
     return render(request, 'cabs_admin/machines.html', context)
 
 @login_required
@@ -106,7 +129,7 @@ def toggleMachines(request):
         selected_machine = ""
         choosen_machine = request.POST['machine']
         s = Machines.objects.using('cabs').get(machine=choosen_machine)
-        if 'rm' in request.POST:
+        if 'rm' in request.POST and can_edit(request.user):
             s.delete(using='cabs')
         else:
             if s.deactivated:
@@ -182,7 +205,7 @@ def togglePools(request):
         selected_pool = ""
         choosen_pool = request.POST['pool']
         s = Pools.objects.using('cabs').get(name=choosen_pool)
-        if 'rm' in request.POST:
+        if 'rm' in request.POST and can_edit(request.user):
             s.delete(using='cabs')
         else:
             if s.deactivated:
@@ -284,7 +307,7 @@ def setBlacklist(request):
         return HttpResponseRedirect(reverse('cabs_admin:blacklistPage'))
 
 @login_required
-@user_passes_test(can_disable, login_url='/admin/')
+@user_passes_test(can_edit, login_url='/admin/')
 def toggleBlacklist(request): 
     try:
         choosen_address = request.POST['address']
