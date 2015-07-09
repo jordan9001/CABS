@@ -46,7 +46,12 @@ Hover over the Disabled buttons to see the reason why they were disabled.
     <label>Machine Name:</label>
     <input type="text" name="machine" title="Machine Name" pattern="^\w+$">
     <label>Pool:</label>
-    <input type="text" name="name" title="Machine Pool" pattern="^\w+$">
+    <select class="main_choice" name="name" title="Machine Pool">
+        <option value="" disabled >Choose a Pool</option>
+        {% for pool in pool_list %}
+        <option value="{{ pool.name }}" > {{ pool.name }} </option>
+        {% endfor %}
+    </select>
     <input class="button" type="submit" value="Submit">
     </form>
 </div>

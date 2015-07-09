@@ -98,7 +98,9 @@ def machinesPage(request, selected_machine=None):
         item = machine_info(machine=c.machine, name='No Pool', active=True, user=c.user)
         machine_list.append(item)
     
-    context = {'section_name': 'Machines', 'machine_list': machine_list, 'selected_machine': selected_machine}
+    pool_list = Pools.objects.using('cabs').all()
+    
+    context = {'section_name': 'Machines', 'machine_list': machine_list, 'selected_machine': selected_machine, 'pool_list': pool_list}
     return render(request, 'cabs_admin/machines.html', context)
 
 @login_required
