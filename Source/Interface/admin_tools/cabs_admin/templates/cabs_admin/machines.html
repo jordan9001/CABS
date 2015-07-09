@@ -17,7 +17,7 @@ Hover over the Disabled buttons to see the reason why they were disabled.
 {% endif %}
 </div>
 <table class="table_list">
-    <tr><td> Machine </td><td> Pool </td><td> Active </td></tr>
+    <tr><td> Machine </td><td> Pool </td><td> User </td><td> Active </td></tr>
     <tr></tr>
 {% for machine in machine_list %}
     <tr>
@@ -26,6 +26,7 @@ Hover over the Disabled buttons to see the reason why they were disabled.
         <input type="hidden" name="machine" value="{{machine.machine}}">
         <td> {{machine.machine}} </td>
         <td> {{machine.name}} </td>
+        <td> {{machine.user}} </td>
         <td> 
         {{machine.active}}
         <input class="button rm" type="submit" name="rm" value="X">
