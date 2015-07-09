@@ -22,8 +22,7 @@
 #Get functions from functions library
 . /etc/init.d/functions
 
-RETVAL=0
-prog="cabsagentd"
+retval=0
 exec=/usr/lib/CABS/cabsagentd
 lockfile=/var/lock/subsys/cabsagentd
 config=/user/lib/CABS/CABS_agent.conf
@@ -35,7 +34,7 @@ start() {
     fi
     if [ ! -f $lockfile ]; then
         echo -n $"Starting $prog:"
-        daemon $prog
+        daemon $exec
         retval=$?
         ##create lockfile
         [ $retval -eq 0 ] && touch $lockfile
@@ -68,4 +67,4 @@ case "$1" in
         echo -n "Usage: $0 {start|stop|restart|reload}"
         exit 1
 esac
-exit 0
+exit $retval
