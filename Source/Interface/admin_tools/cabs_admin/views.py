@@ -84,19 +84,21 @@ def machinesPage(request, selected_machine=None):
     
     machine_info = collections.namedtuple('machine', ['machine', 'name', 'active', 'user'])
     machine_list = []
+    reported = []
     
     for m in m_list: 
         user = ''
         for c in c_list:
             if m.machine == c.machine:
                 user = c.user
-                c_list.remove(c)
+                reported.append(c)
         item = machine_info(machine=m.machine, name=m.name, active=m.active, user=user)
         machine_list.append(item)
     #if there are left over users logged into machines we don't track, let's report those as well
     for c in c_list:
-        item = machine_info(machine=c.machine, name='No Pool', active=True, user=c.user)
-        machine_list.append(item)
+        if c not in reported:
+            item = machine_info(machine=c.machine, name='No Pool', active=True, user=c.user)
+            machine_list.append(item)
     
     pool_list = Pools.objects.using('cabs').all()
     
