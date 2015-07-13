@@ -1,23 +1,7 @@
 {% include "cabs_admin/header.html" %}
 
-<center>
-<div role="main">
-
-<div style="height: 2.1rem">
-{% if selected_machine %}
-    <form action="{% url 'cabs_admin:commentMachines' %}" method="post">
-    {% csrf_token %}
-        <label>Explain why {{selected_machine}} is disabled:</label>
-        <input type="text" name="reason" title="Reason">
-        <input type="hidden" name="machine" value="{{selected_machine}}">
-        <input class="button rm" type="submit" value="OK" style="float: inherit">
-    </form>
-{% else %}
-Hover over the Disabled buttons to see the reason why they were disabled.
-{% endif %}
-</div>
-<table class="table_list">
-    <tr><td> Machine </td><td> Pool </td><td> User </td><td> Active </td></tr>
+<table class="table table-bordered table-hover">
+    <tr><th> Machine </th><th> Pool </th><th> User </th><th> Status </th></tr>
     <tr></tr>
 {% for machine in machine_list %}
     <tr>
@@ -28,10 +12,28 @@ Hover over the Disabled buttons to see the reason why they were disabled.
         <td> {{ machine.name }} </td>
         <td> {{ machine.user }} </td>
         <td> 
-        {{ machine.active }}
+        {% if machine.active == True %}
+            Active
+        {% else %}
+            Awaiting Response
+        {% endif %}
         {% if machine.name != "No Pool" %}
-        <input class="button rm" type="submit" name="rm" value="X">
-        <button class="button rm" type="submit" name="toggle" value="{{machine.machine}}" {% if machine.deactivated %} title="{{machine.reason}}"style="background-color: black; color: white">Disabled{% else %}>Enabled{% endif %}</button>
+        <input class="btn btn-danger pull-right" type="submit" name="rm" value="X">
+        <button type="submit" name="toggle" value="{{machine.machine}}"
+            {% if machine.deactivated and selected_machine == machine.machine %}
+                class="btn btn-primary active pull-right" title="Deactivation Reason" data-html="true" data-toggle="popover" data-placement="left" data-content="
+    <form action='{% url 'cabs_admin:commentMachines' %}' method='post'>
+    {% csrf_token %}
+        <input type='text' name='reason' title='Reason'>
+        <input type='hidden' name='machine' value='{{selected_machine}}'>
+        <button class='btn btn-primary' type='submit'>OK</button>
+    </form>
+" checked>Disabled
+            {% elif machine.deactivated %}
+                class="btn btn-primary active pull-right" title="{{machine.reason}}" data-toggle="tooltip" data-placement="left" checked>Disabled
+            {% else %}
+                class="btn btn-default pull-right">Enabled
+            {% endif %}</button>
         {% endif %}
         </form>
         </td>
@@ -40,22 +42,32 @@ Hover over the Disabled buttons to see the reason why they were disabled.
 </table>
 
 <hr/>
-<div class="container">
-    <h2>Add/Change a Machine</h2>
-    <p>Note that to add a machine, you must also install the CABS Agent on it.</p>
-    <form action="{% url 'cabs_admin:setMachines' %}" method="post">
-    {% csrf_token %}
-    <label>Machine Name:</label>
-    <input type="text" name="machine" title="Machine Name" pattern="^\w+$">
-    <label>Pool:</label>
-    <select class="main_choice" name="name" title="Machine Pool">
-        <option value="" disabled >Choose a Pool</option>
-        {% for pool in pool_list %}
-        <option value="{{ pool.name }}" > {{ pool.name }} </option>
-        {% endfor %}
-    </select>
-    <input class="button" type="submit" value="Submit">
-    </form>
+
+<div class="panel panel-default">
+    <div class="panel-heading">
+        <h3 class="panel-title">Add/Change a Machine</h3>
+    </div>
+    <div class="panel-body">
+        <p>Note that to add a machine, you must also install the CABS Agent on it.</p>
+        <form action="{% url 'cabs_admin:setMachines' %}" method="post" class="form-inline">
+        {% csrf_token %}
+        <div class="form-group">
+            <label for="machine">Machine Name:</label>
+            <input type="text" class="form-control" name="machine" title="Machine Name" pattern="^\w+$">
+        </div>
+        <div class="form-group">
+            <label for="name">Pool:</label>
+            <select class="main_choice form-control" name="name" title="Machine Pool">
+                <option value="" disabled >Choose a Pool</option>
+                {% for pool in pool_list %}
+                    <option value="{{ pool.name }}" > {{ pool.name }} </option>
+                {% endfor %}
+            </select>
+        </div>
+        <button type="submit" class="btn btn-primary">Submit</button>
+        </form>
+    </div>
 </div>
-</div>
-</center>
+
+
+{% include "cabs_admin/footer.html" %}

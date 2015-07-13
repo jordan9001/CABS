@@ -93,7 +93,7 @@ AUTH_LDAP_GROUP_SEARCH = LDAPSearch("dc=et,dc=byu,dc=edu", ldap.SCOPE_SUBTREE)
 AUTH_LDAP_MIRROR_GROUPS = True
 
 CABS_LDAP_CAN_EDIT_GROUPS = [
-    "caedm_admin_level3",
+    "caedm_admin_level1",
 ]
 CABS_LDAP_CAN_DISABLE_GROUPS = [
     "xcpiso",

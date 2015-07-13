@@ -16,6 +16,7 @@ from django.conf import settings
 
 import collections
 
+
 def can_view(user):
     if len(settings.CABS_LDAP_CAN_VIEW_GROUPS) == 0:
         return True
@@ -55,21 +56,15 @@ def index(request):
         template_response = views.login(request, template_name='cabs_admin/logindex.html', current_app='cabs_admin', extra_context=context)
         return template_response
     else:
-        #print "Groups", request.user.groups.all()
-        #print "Can Edit", can_edit(request.user)
-        #print "Can Disable", can_disable(request.user)
-        #print "Can View", can_view(request.user)
-        #print "can_edit", " ".join(x for x in settings.CABS_LDAP_CAN_EDIT_GROUPS)
-        #print "can_disable", " ".join(x for x in settings.CABS_LDAP_CAN_DISABLE_GROUPS)
-        #print "can_view", " ".join(x for x in settings.CABS_LDAP_CAN_VIEW_GROUPS)
         if can_view(request.user):
-            permissions = (" Change" if can_edit(request.user) else "")
-            permissions += (" Disable" if can_disable(request.user) else "")
-            permissions += (" and View" if len(permissions) > 0 else "View")
-            user_string = "User {0} can:{1}".format(request.user.get_username(), permissions)
+            permissions = (" view pages")
+            permissions += (",{0} disable items".format("" if can_edit(request.user) else "and") if can_disable(request.user) else "")
+            permissions += (", and edit or create items" if can_edit(request.user) else "")
+            user_string = "You have permissions to {0}.".format(permissions)
         else:
-            user_string = "User {0} has no permissions".format(request.user.get_username())
-        context['section_name'] = user_string 
+            user_string = "You has no administrator permissions."
+        context['permissions'] = user_string
+        context['section_name'] = "Welcome {0}".format(request.user.get_username()) 
         return render(request, 'cabs_admin/index.html', context)
 
 def logoutView(request):
@@ -82,7 +77,7 @@ def machinesPage(request, selected_machine=None):
     c_list = Current.objects.using('cabs').all()
     m_list = Machines.objects.using('cabs').all()
     
-    machine_info = collections.namedtuple('machine', ['machine', 'name', 'active', 'user'])
+    machine_info = collections.namedtuple('machine', ['machine', 'name', 'active', 'user', 'deactivated', 'reason'])
     machine_list = []
     reported = []
     
@@ -92,12 +87,12 @@ def machinesPage(request, selected_machine=None):
             if m.machine == c.machine:
                 user = c.user
                 reported.append(c)
-        item = machine_info(machine=m.machine, name=m.name, active=m.active, user=user)
+        item = machine_info(machine=m.machine, name=m.name, active=m.active, user=user, deactivated=m.deactivated, reason=m.reason)
         machine_list.append(item)
     #if there are left over users logged into machines we don't track, let's report those as well
     for c in c_list:
         if c not in reported:
-            item = machine_info(machine=c.machine, name='No Pool', active=True, user=c.user)
+            item = machine_info(machine=c.machine, name='No Pool', active=True, user=c.user, deactivated=False, reason="")
             machine_list.append(item)
     
     pool_list = Pools.objects.using('cabs').all()
@@ -372,9 +367,37 @@ def historyPage(request):
         i = int(request.GET.get('position'))
     else:
         i = 0
-    if request.GET.get('filter'):
-        pass
-    logger_list = Log.objects.using('cabs').order_by('-timestamp', '-id')[i:(i+50)]
-    context = {'section_name': 'History', 'logger_list': logger_list, 'position': i}
+    
+    searchterm = request.GET.get('filter')
+        
+    items_per_page = 50
+    links_above_below = 3
+    
+    logger_list = Log.objects.using('cabs').filter(message__contains=searchterm).order_by('-timestamp', '-id')
+
+    page = collections.namedtuple('page', ['index', 'pos'])
+    number_items = len(logger_list)
+    logger_list = logger_list[i:(i+items_per_page)]
+
+    page_list = []
+    page_list.append(page(index=0, pos=0))
+    
+    current_page = i / items_per_page
+    last = number_items / items_per_page
+    last_pos = (number_items - items_per_page if number_items > items_per_page else None)
+    
+    highest = current_page + links_above_below
+    highest = ((last - 1) if highest >= last else highest)
+    lowest = current_page - links_above_below
+    lowest = (1 if highest <= 0 else lowest)
+    for j in range(1, (number_items / items_per_page) ):
+        if lowest <= j <= highest:
+            p = page(index=j, pos=(j*items_per_page))
+            page_list.append(p) 
+    
+    if last_pos is not None:
+        page_list.append(page(index=last, pos=last_pos))
+
+    context = {'section_name': 'History', 'logger_list': logger_list, 'current_page': current_page, 'page_list': page_list, 'filter': searchterm}
     return render(request, 'cabs_admin/history.html', context)
 
