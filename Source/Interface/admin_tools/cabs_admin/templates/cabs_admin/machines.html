@@ -57,7 +57,7 @@
         </div>
         <div class="form-group">
             <label for="name">Pool:</label>
-            <select class="main_choice form-control" name="name" title="Machine Pool">
+            <select class="form-control" name="name" title="Machine Pool">
                 <option value="" disabled >Choose a Pool</option>
                 {% for pool in pool_list %}
                     <option value="{{ pool.name }}" > {{ pool.name }} </option>
