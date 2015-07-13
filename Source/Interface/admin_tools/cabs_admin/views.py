@@ -367,9 +367,11 @@ def historyPage(request):
         i = int(request.GET.get('position'))
     else:
         i = 0
-    
-    searchterm = request.GET.get('filter')
-        
+    if request.GET.get('filter'):
+        searchterm = request.GET.get('filter')
+    else:
+        searchterm = ""
+
     items_per_page = 50
     links_above_below = 3
     
