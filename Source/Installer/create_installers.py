@@ -75,6 +75,8 @@ class Settings(object):
                 #Agent .conf
                 ["Interval", "120", "Heartbeat Interval", "How often the Agent reports to the Server in seconds.\nMust be less than Broker's Reserve_Time.", r"^\d+$"],
                 ["Hostname", "None", "Fixed Hostname", "The Agent Machine's Hostname.\nIf 'None' then the hostname will be determined by the Agent.\nThis can be changed during Agent Install.", r""],
+                ["Process_Listen-Win", "None", "Process Name", "The name of a process to watch.\nThis process will be searched for.\nIf found the Agent will report it's status.\nIf you are using RGS, you probably want 'rgsender.exe'\nIf 'None' then no process will be watched.", r""],
+                ["Process_Listen-Lin", "None", "Process Name", "The name of a process to watch.\nThis process will be searched for.\nIf found the Agent will report it's status.\nIf you are using RGS, you probably want 'rgsender.exe'\nIf 'None' then no process will be watched.", r""],
                 #["Directory-Win", "\\Program Files\\CABS\\Agent\\", "Install Directory", "The Agent's default install directory.\nYou probably shouldn't change this.", r""],
                 #["Directory-Lin", "/usr/lib/cabs/agent/", "Install Directory", "The Agent's default install directory.\nYou probably shouldn't change this.", r""],
             )
@@ -124,13 +126,13 @@ class Settings(object):
             settings = (
                         (self.finds("SSL_Cert"),self.finds("Host_Addr"),self.finds("Agent_Port")),
                         
-                        (self.finds("Interval"),self.finds("Hostname")),
+                        (self.finds("Interval"),self.finds("Hostname"),self.finds("Process_Listen-Win")),
                         )
         elif which == "Agent_Linux":
             settings = (
                         (self.finds("SSL_Cert"),self.finds("Host_Addr"),self.finds("Agent_Port")),
                         
-                        (self.finds("Interval"),self.finds("Hostname")),
+                        (self.finds("Interval"),self.finds("Hostname"),self.finds("Process_Listen-Lin")),
                         )
         else:
             raise Exception

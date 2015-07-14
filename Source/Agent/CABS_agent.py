@@ -5,8 +5,19 @@ import socket, ssl
 import sys
 import os
 import subprocess
+import re
 from sched import scheduler
 from time import time, sleep
+try:
+    import psutil
+    ERR_GET_STATUS = -1
+    STATUS_PS_NOT_FOUND = 0
+    STATUS_PS_NOT_RUNNING = 1
+    STATUS_PS_NOT_CONNECTED = 2
+    STATUS_PS_OK = 3
+except:
+    psutil = None
+
 
 settings = {}
 
@@ -48,7 +59,10 @@ def tellServer(userlist):
     try:
         s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         s.connect((settings.get("Host_Addr"), int(settings.get("Agent_Port"))))
-        content = "sr:" + settings.get("Hostname")
+        if settings.get("Process_Listen") is not None and settings.get("Process_Listen") != 'None':
+            content = "spr:" + str(getStatus()) + ":" + settings.get("Hostname")
+        else:
+            content = "sr:" + settings.get("Hostname")
         for user in userlist:
             content += ":{0}".format(user)
         content += "\r\n"
@@ -61,6 +75,58 @@ def tellServer(userlist):
         s_wrapped.sendall(content)      
     except Exception as e:
         print "Could not connect to {0}:{1} because {2}".format(settings.get("Host_Addr"), settings.get("Agent_Port"), e)
+
+def getStatus():
+    #get the status of a process that matches settings.get("Process_Listen")
+    #then check to make sure it has at least one listening conection
+    #on windows, you can't search processes by yourself, so Popen "tasklist" to try to find the pid for the name
+    #then use psutil to view the connections associated with that
+    if not settings.get("Process_Listen") or psutil is None:
+        return ERR_GET_STATUS
+     
+    #We really need admin privledges for this
+
+    process = None
+    
+    if sys.platform.startswith("win"):
+        try:
+            p = psutil.Popen("tasklist", stdout=subprocess.PIPE)
+            out, err = p.communicate()
+            l_start = out.find(settings.get("Process_Listen"))
+            l_end = out.find('\n', l_start)
+            m = re.search(r"\d+", out[l_start: l_end])
+            if m is None:
+                return STATUS_PS_NOT_FOUND
+            process = psutil.Process(int(m.group(0)))
+        except:
+            return ERR_GET_STATUS
+    else:
+        #assume a platform where we can just search with psutil
+        for ps in psutil.process_iter():
+            try:
+                if ps.name() == settings.get("Process_Listen"):
+                    process = ps
+            except:
+                #we probably dont have permissions to access the ps.name()
+                pass
+        
+    if process is None:
+        return STATUS_PS_NOT_FOUND
+    
+    try:
+        if not process.is_running():
+            return STATUS_PS_NOT_RUNNING
+        connections = False
+        for conn in process.connections():
+            if conn.status in [psutil.CONN_ESTABLISHED, psutil.CONN_SYN_SENT, psutil.CONN_SYN_RECV, psutil.CONN_LISTEN]:
+                connections = True
+        if not connections:
+            return STATUS_PS_NOT_CONNECTED
+        else:
+            return STATUS_PS_OK
+    except:
+        return ERR_GET_STATUS
+
 
 def readConfigFile():
     #open the .conf file and return the variables as a dictionary

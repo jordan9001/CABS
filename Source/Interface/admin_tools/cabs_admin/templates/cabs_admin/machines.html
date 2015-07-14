@@ -1,7 +1,7 @@
 {% include "cabs_admin/header.html" %}
 
 <table class="table table-bordered table-hover">
-    <tr><th> Machine </th><th> Pool </th><th> User </th><th> Status </th></tr>
+    <tr><th> Machine </th><th> Pool </th><th> User </th><th> Status </th><th> Active </th></tr>
     <tr></tr>
 {% for machine in machine_list %}
     <tr>
@@ -11,6 +11,7 @@
         <td> {{ machine.machine }} </td>
         <td> {{ machine.name }} </td>
         <td> {{ machine.user }} </td>
+        <td> {{ machine.status }} </td>
         <td> 
         {% if machine.active == True %}
             Active
