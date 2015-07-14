@@ -69,7 +69,10 @@ def tellServer(userlist):
         if (settings.get("SSL_Cert") is None) or (settings.get("SSL_Cert") == 'None'):
             s_wrapped = s 
         else:
-            ssl_cert = settings.get("Directory") + "/" + settings.get("SSL_Cert")
+            ssl_cert = settings.get("Directory")
+            if not ssl_cert.endswith('/') and not ssl_cert.endswith('\\'):
+                ssl_cert = ssl_cert + '/'
+            ssl_cert = ssl_cert + settings.get("SSL_Cert")
             s_wrapped = ssl.wrap_socket(s, cert_reqs=ssl.CERT_REQUIRED, ca_certs=ssl_cert, ssl_version=ssl.PROTOCOL_SSLv23)
         
         s_wrapped.sendall(content)      

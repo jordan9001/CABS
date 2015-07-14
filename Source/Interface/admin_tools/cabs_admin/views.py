@@ -87,7 +87,7 @@ def machinesPage(request, selected_machine=None):
             if m.machine == c.machine:
                 user = c.user
                 reported.append(c)
-        item = machine_info(machine=m.machine, name=m.name, active=m.active, user=user, deactivated=m.deactivated, reason=m.reason, status=m.status)
+        item = machine_info(machine=m.machine, name=m.name, active=m.active, user=user, deactivated=m.deactivated, reason=m.reason, status=(m.status if m.status is not None else ""))
         machine_list.append(item)
     #if there are left over users logged into machines we don't track, let's report those as well
     for c in c_list:
