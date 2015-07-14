@@ -87,6 +87,7 @@ class Pools(models.Model):
 class Settings(models.Model):
     setting = models.CharField(primary_key=True, unique=True, max_length=32)
     value = models.CharField(max_length=64)
+    applied = models.NullBooleanField(blank=True, null=True)
 
     class Meta:
         managed = False

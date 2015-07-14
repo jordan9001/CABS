@@ -2,14 +2,15 @@
 
 {% if settings_list %}
     <table class="table table-bordered table-hover">
-        <tr><th> Setting </th><th> Value </th></tr>
+        <tr><th> Setting </th><th> Value </th><th> Status </th></tr>
         {% for item in settings_list %}
         <tr>
             <form action="{% url 'cabs_admin:rmSettings' %}" method="post">
             {% csrf_token %}
             <input type="hidden" name="setting" value="{{item.setting}}">
             <td> {{item.setting}} </td>
-            <td> {{item.value}}
+            <td> {{item.value}} </td>
+            <td> {% if item.applied == True %} Applied {% else %} Pending {% endif %}
             <button class="btn btn-danger pull-right" type="submit">X</button></td>
             </form>
         </tr>
@@ -25,7 +26,7 @@
     </div>
     <div class="panel-body">
         <p>These settings will override previous settings in the Broker's CABS_server.conf file.
-        <br/>The Broker server will have to be restarted for these settings to be implemented.</p>
+        <br/>The Broker server will be restarted within 9 minutes to implement these settings.</p>
         <form action="{% url 'cabs_admin:settingsPage' %}" method="get" class="form-inline">
         <div class="form-group">
             <select class="form-control" name="setting" onchange="this.form.submit()">
