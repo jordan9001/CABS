@@ -94,8 +94,21 @@ def machinesPage(request, selected_machine=None):
         if c not in reported:
             item = machine_info(machine=c.machine, name='No Pool', active=True, user=c.user, deactivated=False, reason="", status="")
             machine_list.append(item)
+
+    if request.GET.get('sort'):
+        sortby = request.GET.get('sort')
+        if sortby == "machine":
+            machine_list = sorted(machine_list, key=lambda x: x.machine)
+        elif sortby == "pool":
+            machine_list = sorted(machine_list, key=lambda x: x.name)
+        elif sortby == "user":
+            machine_list = sorted(machine_list, key=lambda x: x.user)
+        elif sortby == "status":
+            machine_list = sorted(machine_list, key=lambda x: x.status)
+        elif sortby == "agent":
+            machine_list = sorted(machine_list, key=lambda x: x.active)
     
-    pool_list = Pools.objects.using('cabs').all()
+    pool_list = Pools.objects.using('cabs').all().order_by('name')
     
     context = {'section_name': 'Machines', 'machine_list': machine_list, 'selected_machine': selected_machine, 'pool_list': pool_list}
     return render(request, 'cabs_admin/machines.html', context)
@@ -162,7 +175,7 @@ def commentMachines(request):
 @login_required
 @user_passes_test(can_view, login_url='/admin/')
 def poolsPage(request, selected_pool=None):
-    pool_list = Pools.objects.using('cabs').all()
+    pool_list = Pools.objects.using('cabs').all().order_by('name')
     context = {'section_name': 'Pools', 'pool_list': pool_list, 'selected_pool': selected_pool}
     return render(request, 'cabs_admin/pools.html', context)
 
@@ -371,11 +384,18 @@ def historyPage(request):
         searchterm = request.GET.get('filter')
     else:
         searchterm = ""
+    if request.GET.get('sort'):
+        sortby = request.GET.get('sort')
+    else:
+        sortby = ""
 
     items_per_page = 50
     links_above_below = 3
     
-    logger_list = Log.objects.using('cabs').filter(message__contains=searchterm).order_by('-timestamp', '-id')
+    if sortby == "level":
+        logger_list = Log.objects.using('cabs').filter(message__contains=searchterm).order_by('-msg_type', '-timestamp', '-id')
+    else:
+        logger_list = Log.objects.using('cabs').filter(message__contains=searchterm).order_by('-timestamp', '-id')
 
     page = collections.namedtuple('page', ['index', 'pos'])
     number_items = len(logger_list)
@@ -400,6 +420,6 @@ def historyPage(request):
     if last_pos is not None:
         page_list.append(page(index=last, pos=last_pos))
 
-    context = {'section_name': 'History', 'logger_list': logger_list, 'current_page': current_page, 'page_list': page_list, 'filter': searchterm}
+    context = {'section_name': 'History', 'logger_list': logger_list, 'current_page': current_page, 'page_list': page_list, 'filter': searchterm, 'sort': sortby}
     return render(request, 'cabs_admin/history.html', context)
 
