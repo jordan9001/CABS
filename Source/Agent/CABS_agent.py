@@ -60,7 +60,7 @@ def tellServer(userlist):
         s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         s.connect((settings.get("Host_Addr"), int(settings.get("Agent_Port"))))
         if settings.get("Process_Listen") is not None and settings.get("Process_Listen") != 'None':
-            content = "spr:" + str(getStatus()) + ":" + settings.get("Hostname")
+            content = "spr:" + settings.get("Process_Listen") + str(getStatus()) + ":" + settings.get("Hostname")
         else:
             content = "sr:" + settings.get("Hostname")
         for user in userlist:

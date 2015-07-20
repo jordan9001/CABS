@@ -1,7 +1,7 @@
 {% include "cabs_admin/header.html" %}
 
 <table class="table table-bordered table-hover">
-    <tr><th><a href="{% url 'cabs_admin:machinesPage' %}?sort=machine" style="color: #333333">Machine</a></th><th><a href="{% url 'cabs_admin:machinesPage' %}?sort=pool" style="color: #333333">Pool</a></th><th><a href="{% url 'cabs_admin:machinesPage' %}?sort=user" style="color: #333333">User</a></th><th><a href="{% url 'cabs_admin:machinesPage' %}?sort=status" style="color: #333333">Status</a></th><th><a href="{% url 'cabs_admin:machinesPage' %}?sort=agent" style="color: #333333">Agent Status</a></th></tr>
+    <tr><th><a href="{% url 'cabs_admin:machinesPage' %}?sort=machine" style="color: #333333">Machine</a></th><th><a href="{% url 'cabs_admin:machinesPage' %}?sort=pool" style="color: #333333">Pool</a></th><th><a href="{% url 'cabs_admin:machinesPage' %}?sort=user" style="color: #333333">User</a></th><th><a href="{% url 'cabs_admin:machinesPage' %}?sort=status" style="color: #333333">Protocol</a></th><th><a href="{% url 'cabs_admin:machinesPage' %}?sort=agent" style="color: #333333">Agent Status</a></th></tr>
     <tr></tr>
 {% for machine in machine_list %}
     <tr>
