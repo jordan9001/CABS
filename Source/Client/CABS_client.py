@@ -143,7 +143,7 @@ def getMachine(user, password, pool, host, port, retry=0):
             sleep(retry)
             return getMachine(user, password, pool, host, port, retry+1)
         else:
-            raise ServerError(pools)
+            raise ServerError(machine)
     return machine
 
 class ServerError(Exception):
@@ -926,11 +926,11 @@ class MainWindow(wx.Frame):
                     command.append("-Rgreceiver.Session.0.PasswordFormat=XOR")
                 
                 command.extend(self.tab1.rgsSettings())
-                command.extend(self.tab1.rgsSettings())
-                command.extend(self.tab1.rgsSettings())
-                command.extend(self.tab1.rgsSettings())
-                command.extend(self.tab1.rgsSettings())
-                command.extend(self.tab1.rgsSettings())
+                command.extend(self.tab2.rgsSettings())
+                command.extend(self.tab3.rgsSettings())
+                command.extend(self.tab4.rgsSettings())
+                command.extend(self.tab5.rgsSettings())
+                command.extend(self.tab6.rgsSettings())
                 #print "running" + str(command)
                 
                 #set command, then quit the wxapp
