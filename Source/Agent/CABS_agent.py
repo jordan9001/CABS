@@ -10,13 +10,14 @@ from sched import scheduler
 from time import time, sleep
 try:
     import psutil
-    ERR_GET_STATUS = -1
-    STATUS_PS_NOT_FOUND = 0
-    STATUS_PS_NOT_RUNNING = 1
-    STATUS_PS_NOT_CONNECTED = 2
-    STATUS_PS_OK = 3
 except:
     psutil = None
+
+ERR_GET_STATUS = -1
+STATUS_PS_NOT_FOUND = 0
+STATUS_PS_NOT_RUNNING = 1
+STATUS_PS_NOT_CONNECTED = 2
+STATUS_PS_OK = 3
 
 
 settings = {}

@@ -159,6 +159,7 @@ def showError(errortext):
         message = errortext.split(':',1)[1]
     else:
         message = "Unexpected Error."
+    message = "CABS Error:\n" + message
     return message
 
 
