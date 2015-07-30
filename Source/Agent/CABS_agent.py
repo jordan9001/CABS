@@ -1,5 +1,5 @@
 #!/usr/bin/python
-#This is the test Agent for CABS
+#This is the test Agent for CABS for linux
 
 import socket, ssl
 import sys
@@ -23,37 +23,17 @@ STATUS_PS_OK = 3
 settings = {}
 
 def heartbeat():
-    if sys.platform.startswith("linux"):
-        p = subprocess.Popen(["w", "-h"], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-        output, err = p.communicate()
-        lines = output.split('\n')
-        userlist = set()
-        for line in lines:
-            try:
-                userlist.add(line.split()[0])
-            except:
-                pass
-        print userlist
-
-    elif sys.platform.startswith("win"):
+    p = subprocess.Popen(["w", "-h"], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    output, err = p.communicate()
+    lines = output.split('\n')
+    userlist = set()
+    for line in lines:
         try:
-            p = subprocess.Popen(["C:\\Windows\\Sysnative\\query.exe","user"], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+            userlist.add(line.split()[0])
         except:
-            p = subprocess.Popen(["C:\\Windows\\system32\\query.exe","user"], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-        
-        output, err = p.communicate()
-        userlist = set()
-        for i in range(1,len(output.split('\r\n'))-1):
-            user = output.split('\r\n')[i].split()[0]
-            if user.startswith(">"):
-                user = user[1:]
-            userlist.add(user)
-    else:
-        #badbadnotgood
-        #Unrecognized OS
-        pass
-        return
-
+            pass
+    print userlist
+    
     tellServer(userlist)
 
 def tellServer(userlist):
@@ -92,27 +72,14 @@ def getStatus():
 
     process = None
     
-    if sys.platform.startswith("win"):
+    #assume a platform where we can just search with psutil
+    for ps in psutil.process_iter():
         try:
-            p = psutil.Popen("tasklist", stdout=subprocess.PIPE)
-            out, err = p.communicate()
-            l_start = out.find(settings.get("Process_Listen"))
-            l_end = out.find('\n', l_start)
-            m = re.search(r"\d+", out[l_start: l_end])
-            if m is None:
-                return STATUS_PS_NOT_FOUND
-            process = psutil.Process(int(m.group(0)))
+            if ps.name() == settings.get("Process_Listen"):
+                process = ps
         except:
-            return ERR_GET_STATUS
-    else:
-        #assume a platform where we can just search with psutil
-        for ps in psutil.process_iter():
-            try:
-                if ps.name() == settings.get("Process_Listen"):
-                    process = ps
-            except:
-                #we probably dont have permissions to access the ps.name()
-                pass
+            #we probably dont have permissions to access the ps.name()
+            pass
         
     if process is None:
         return STATUS_PS_NOT_FOUND
@@ -139,11 +106,7 @@ def readConfigFile():
         settings["Directory"] = os.path.dirname(os.path.abspath(__file__))
         filelocation = os.path.dirname(os.path.abspath(__file__)) + '/CABS_agent.conf'
     else:
-        settings["Directory"] = '\\Program Files\\CABS\\Agent'
-        filelocation = '\\Program Files\\CABS\\Agent' + '\\CABS_agent.conf'
-        if not os.path.isfile(filelocation):
-            settings["Directory"] = '\\Program Files (x86)\\CABS\\Agent'
-            filelocation = '\\Program Files (x86)\\CABS\\Agent' + '\\CABS_agent.conf'
+        pass
     with open(filelocation, 'r') as f:
         for line in f:
             line = line.strip()

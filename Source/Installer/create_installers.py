@@ -297,7 +297,6 @@ def Agent_Windows(settingsobj):
         f.write(conf)
     #move the installer and the cacerts.pem
     copy2(base+"/Source/Agent/build/win_agent/Install_CABS_Agent.exe", path+"/Install_CABS_Agent.exe")
-    copy2(base+"/Source/Agent/build/win_agent/win_agent_createtask.xml", path+"/win_agent_createtask.xml")
     sslcert = settingsobj.finds("SSL_Cert")[1]
     if sslcert != "None" and  os.path.isfile(base+"/Source/Shared/"+sslcert):
         copy2(base+"/Source/Shared/"+sslcert, path+"/"+sslcert)

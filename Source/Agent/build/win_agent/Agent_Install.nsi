@@ -27,7 +27,6 @@ RequestExecutionLevel admin
 #--------------------------------
 
 # Pages
-Page license
 Page instfiles
 UninstPage uninstConfirm
 UninstPage instfiles
@@ -52,9 +51,10 @@ Section "CABS Agent (required)"
 	CopyFiles $EXEDIR\$1 $INSTDIR
   FindClose $0
   
-  #Create the Task
-  Exec '"$SYSDIR\schtasks" /Create /XML $EXEDIR\win_agent_createtask.xml /TN CABS_agent'
-  Exec '"$SYSDIR\schtasks" /Run /TN CABS_agent'
+  #Install the Service
+  Exec '"$INSTDIR\CABS_agent.exe" --startup=auto install'
+  Exec '"$INSTDIR\CABS_agent.exe" start'
+
   
   # Write the installation path into the registry
   WriteRegStr HKLM SOFTWARE\CABS_agent "Install_Dir" "$INSTDIR"
