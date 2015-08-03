@@ -626,7 +626,7 @@ class TimersTab(wx.Panel):
         #return list of string arguments for RGS
         cmdargs = []
         
-        if self.cus_rb.IsChecked():
+        if self.cus_rb.GetValue():
             cmdargs.append("-Rgreceiver.Network.Timeout.Error="+str(int(self.error_box.GetValue())*1000))
             cmdargs.append("-Rgreceiver.Network.Timeout.Warning="+str(int(self.warn_box.GetValue())*1000))
             cmdargs.append("-Rgreceiver.Network.Timeout.Dialog="+str(int(self.dialog_box.GetValue())*1000))
@@ -959,7 +959,7 @@ class MainWindow(wx.Frame):
 
 def watchProcess(pid):
     #we need psutil for this
-    if settings.get("psutil") == 'False':
+    if settings.get("psutil") == 'False' or settings.get("RGS_Hide") == 'False':
         sys.exit()
     #given this process we need to kill the RGS initial screen thing when it's child fork dies
     #then we exit
@@ -979,7 +979,7 @@ def watchProcess(pid):
                 #if no connections are in state established (or just one connection on windows), we are done, so kill it.
                 if connection.status == 'ESTABLISHED':
                     numout += 1
-            if numout <= 1:
+            if numout < 1:
                 break
             
         #kill the processes, and ourselves too

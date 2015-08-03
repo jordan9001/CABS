@@ -72,6 +72,7 @@ class Settings(object):
                 ["RGS_Options", "True", "Use RGS", "Have CABS Client run an RGS connection.", r"^((True)|(False))$"],
                 ["RGS_Location", "/opt/hpremote/rgreceiver/rgreceiver.sh", "The RGS executable fullpath", "This should be the full pathname to rgreceiver.sh or rgreceiver.exe\nThis only matters if Use RGS is True", r""],
                 ["RGS_Version", "False", "Check RGS Version", "Have the Client send in the RGS version number to the Broker, to make sure it is up to date.", r"^((True)|(False))$"],
+                ["RGS_Hide", "True", "Hide extra RGS connection screen.", "Have the Client hide the RGS connection screen.", r"^((True)|(False))$"],
                 #Agent .conf
                 ["Interval", "120", "Heartbeat Interval", "How often the Agent reports to the Server in seconds.\nMust be less than Broker's Reserve_Time.", r"^\d+$"],
                 ["Hostname", "None", "Fixed Hostname", "The Agent Machine's Hostname.\nIf 'None' then the hostname will be determined by the Agent.\nThis can be changed during Agent Install.", r""],
@@ -114,13 +115,13 @@ class Settings(object):
             settings = (
                         (self.finds("Host_Addr"),self.finds("Net_Domain"),self.finds("Client_Port"),self.finds("SSL_Cert")),
                         
-                        (self.finds("Command-Win"),self.finds("RGS_Options"),self.finds("RGS_Location"),self.finds("RGS_Version")),
+                        (self.finds("Command-Win"),self.finds("RGS_Options"),self.finds("RGS_Location"),self.finds("RGS_Version"),self.finds("RGS_Hide")),
                         )
         elif which == "Client_Linux":
             settings = (
                         (self.finds("Host_Addr"),self.finds("Net_Domain"),self.finds("Client_Port"),self.finds("SSL_Cert")),
                         
-                        (self.finds("Command-Lin"),self.finds("RGS_Options"),self.finds("RGS_Location"),self.finds("RGS_Version")),
+                        (self.finds("Command-Lin"),self.finds("RGS_Options"),self.finds("RGS_Location"),self.finds("RGS_Version"),self.finds("RGS_Hide")),
                         )
         elif which == "Agent_Windows":
             settings = (
