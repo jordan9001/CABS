@@ -45,7 +45,7 @@
         {% csrf_token %}
         <div class="form-group">
             <label for="name">Pool Name:</label>
-            <input type="text" class="form-control" name="name" title="Pool Name" data-toggle="tooltip" data-placement="top" pattern="^\w+$">
+            <input type="text" class="form-control" name="name" title="Pool Name" data-toggle="tooltip" data-placement="top" pattern="^[\w-_]+$">
         </div>
         <div class="form-group">
             <label for="description">Pool Description:</label>
@@ -53,11 +53,11 @@
         </div>
         <div class="form-group">
             <label for="secondary">Secondary Pools:</label>
-            <input type="text" class="form-control" name="secondary" title="Comma seaprated list of Secondary Pools" data-toggle="tooltip" data-placement="top" pattern="^(\w+(,\w+)*)|()$">
+            <input type="text" class="form-control" name="secondary" title="Comma seaprated list of Secondary Pools" data-toggle="tooltip" data-placement="top" pattern="^([\w-_]+(,[\w-_]+)*)|()$">
         </div>
         <div class="form-group">
             <label for="groups">Authorized Groups:</label>
-            <input type="text" class="form-control" name="groups" title="Comma seaprated list of Groups" data-toggle="tooltip" data-placement="top" pattern="^(\w+(,\w+)*)|()$">
+            <input type="text" class="form-control" name="groups" title="Comma seaprated list of Groups" data-toggle="tooltip" data-placement="top" pattern="^([\w-_]+(,[\w-_]+)*)|()$">
         </div>
         <button type="submit" class="btn btn-primary">Submit</button>
         </form>

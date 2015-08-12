@@ -967,7 +967,7 @@ def watchProcess(pid):
         process = psutil.Process(pid)
         if process.parent():
             process = process.parent()
-        time.sleep(6) #wait 6 seconds, to make sure the connections start
+        time.sleep(15) #wait 15 seconds, to make sure the connections start
         while(True):
             #check for the number of children's connections in the group to go down
             time.sleep(2)
