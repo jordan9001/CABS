@@ -12,7 +12,7 @@
         <td> {{pool.description}} </td>
         <td> {{pool.secondary}} </td>
         <td> {{pool.groups}}
-        <input class="btn btn-danger pull-right" type="submit" name="rm" value="X">
+        <input class="btn btn-danger pull-right" type="submit" name="rm" onclick="return confirm('Are you sure you would like to remove {{ pool.name }}?');" value="X">
         <button type="submit" name="toggle" value="{{pool.name}}"
             {% if pool.deactivated and selected_pool == pool.name %}
                class="btn btn-primary active pull-right" title="Deactivation Reason" data-html="true" data-toggle="popover" data-placement="left" data-content="
