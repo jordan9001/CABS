@@ -4,7 +4,7 @@
     <tr><th> Pool </th><th> Description </th><th> Secondary </th><th> Groups </th></tr>
     <tr></tr>
 {% for pool in pool_list %}
-    <tr>
+    <tr {% if pool.deactivated %} class="danger" {% endif %}>
         <form action="{% url 'cabs_admin:togglePools' %}" method="post" name="toggleMachine">
         {% csrf_token %}
         <input type="hidden" name="pool" value="{{pool.name}}">
