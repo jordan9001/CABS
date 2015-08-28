@@ -42,7 +42,6 @@ start() {
         retval=$?
         cd $olddir
         ##create lockfile
-        touch $lockfile
         success "Starting CABS_Agent"
     else
         echo -n "Lockfile exists already."
