@@ -50,13 +50,11 @@ def tellServer(userlist):
         if (settings.get("SSL_Cert") is None) or (settings.get("SSL_Cert") == 'None'):
             s_wrapped = s 
         else:
-            ssl_cert = settings.get("Directory")
-            if not ssl_cert.endswith('/') and not ssl_cert.endswith('\\'):
-                ssl_cert = ssl_cert + '/'
-            ssl_cert = ssl_cert + settings.get("SSL_Cert")
+            ssl_cert = os.path.join(settings.get("Directory"), settings.get("SSL_Cert"))
             s_wrapped = ssl.wrap_socket(s, cert_reqs=ssl.CERT_REQUIRED, ca_certs=ssl_cert, ssl_version=ssl.PROTOCOL_SSLv23)
         
-        s_wrapped.sendall(content)      
+        s_wrapped.sendall(content)
+        print "Told server '" + content 
     except Exception as e:
         print "Could not connect to {0}:{1} because {2}".format(settings.get("Host_Addr"), settings.get("Agent_Port"), e)
 
@@ -102,11 +100,16 @@ def getStatus():
 def readConfigFile():
     #open the .conf file and return the variables as a dictionary
     global settings
-    if os.path.isfile(os.path.dirname(os.path.abspath(__file__)) + '/CABS_agent.conf'):
-        settings["Directory"] = os.path.dirname(os.path.abspath(__file__))
-        filelocation = os.path.dirname(os.path.abspath(__file__)) + '/CABS_agent.conf'
+    if getattr(sys, 'frozen', False):
+        application_path = os.path.dirname(os.path.abspath(sys.executable))
+    elif __file__:
+        application_path = os.path.dirname(os.path.abspath(__file__))
+    settings["Directory"] = application_path
+    print application_path
+    if os.path.isfile(os.path.join(application_path, 'CABS_agent.conf')):
+        filelocation = os.path.join(application_path, 'CABS_agent.conf')
     else:
-        pass
+        print "Could not find Configuration File"
     with open(filelocation, 'r') as f:
         for line in f:
             line = line.strip()

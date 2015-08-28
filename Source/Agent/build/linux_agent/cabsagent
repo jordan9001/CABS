@@ -33,7 +33,7 @@ start() {
         echo "User has insufficient privilege."
         exit 4
     fi
-    if [ ! -f $lockfile ]; then
+    if [ ! -e $lockfile ]; then
         echo -n $"Starting $exec:"
         olddir=$(pwd)
         cd $dir
@@ -50,7 +50,7 @@ start() {
 
 stop() {
     echo -n "Stopping $exec: "
-    kill -9 $( cat $lockfile )
+    kill $( cat $lockfile )
     ##delete lockfile
     rm -f $lockfile
 }

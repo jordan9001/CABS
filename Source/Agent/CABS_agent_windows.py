@@ -58,10 +58,7 @@ def tellServer(userlist):
         if (settings.get("SSL_Cert") is None) or (settings.get("SSL_Cert") == 'None'):
             s_wrapped = s 
         else:
-            ssl_cert = settings.get("Directory")
-            if not ssl_cert.endswith('/') and not ssl_cert.endswith('\\'):
-                ssl_cert = ssl_cert + '/'
-            ssl_cert = ssl_cert + settings.get("SSL_Cert")
+            ssl_cert = os.path.join(settings.get("Directory"), settings.get("SSL_Cert"))
             s_wrapped = ssl.wrap_socket(s, cert_reqs=ssl.CERT_REQUIRED, ca_certs=ssl_cert, ssl_version=ssl.PROTOCOL_SSLv23)
         
         s_wrapped.sendall(content)      
@@ -113,9 +110,14 @@ def getStatus():
 def readConfigFile():
     #open the .conf file and return the variables as a dictionary
     global settings
-    if os.path.isfile(os.path.dirname(os.path.abspath(__file__)) + '\\CABS_agent.conf'):
-        settings["Directory"] = os.path.dirname(os.path.abspath(__file__))
-        filelocation = os.path.dirname(os.path.abspath(__file__)) + '\\CABS_agent.conf'
+    if getattr(sys, 'frozen', False):
+        application_path = os.path.dirname(os.path.abspath(sys.executable))
+    elif __file__:
+        application_path = os.path.dirname(os.path.abspath(__file__))
+    settings["Directory"] = application_path
+    
+    if os.path.isfile(os.path.join(application_path, 'CABS_agent.conf')):
+        filelocation = os.path.join(application_path, 'CABS_agent.conf')
     else:
         settings["Directory"] = '\\Program Files\\CABS\\Agent'
         filelocation = '\\Program Files\\CABS\\Agent' + '\\CABS_agent.conf'
