@@ -54,7 +54,7 @@
         {% csrf_token %}
         <div class="form-group">
             <label for="machine">Machine Name:</label>
-            <input type="text" class="form-control" name="machine" title="Machine Name" pattern="^\w+$">
+            <input type="text" class="form-control" name="machine" title="Machine Name" pattern="^[\w-_]+$">
         </div>
         <div class="form-group">
             <label for="name">Pool:</label>

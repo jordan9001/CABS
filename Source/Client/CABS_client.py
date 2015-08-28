@@ -33,7 +33,11 @@ def getRGSversion():
 
 def readConfigFile():
     global settings
-    filelocation = os.path.dirname(os.path.abspath(__file__)) + '/CABS_client.conf'
+    if getattr(sys, 'frozen', False):
+        application_path = sys.executable
+    else:
+        application_path = __file__
+    filelocation = os.path.dirname(os.path.abspath(application_path)) + '/CABS_client.conf'
     if not isfile(filelocation):
         return False
     
@@ -77,6 +81,8 @@ def readConfigFile():
         settings["Net_Domain"] = ""
     if not settings.get("RGS_Version"):
         settings["RGS_Version"] = 'False'
+    if not settings.get("RGS_Hide"):
+        settings["RGS_Hide"] = 'True'
     
     return True
 
@@ -167,6 +173,7 @@ class MainPage(wx.Panel):
     def __init__(self, parent):
         wx.Panel.__init__(self, parent)
         self.InitUI()
+        self.username.SetFocus()
     
     def InitUI(self):
         self.user_label = wx.StaticText(self, wx.ID_ANY, "Username : ", size=(80,-1))

@@ -24,4 +24,5 @@ urlpatterns = patterns('',
     url(r'^whitelist/submit/$', views.setWhitelist, name='setWhitelist'),
     url(r'^whitelist/rm/$', views.rmWhitelist, name='rmWhitelist'),
     url(r'^history/$', views.historyPage, name='historyPage'),
+    url(r'^(?P<permission_error>(view)|(edit)|(disable))/$', views.index, name='index'),
 )

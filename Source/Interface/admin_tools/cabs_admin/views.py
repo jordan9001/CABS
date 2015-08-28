@@ -50,7 +50,7 @@ def can_edit(user):
  
     return can
 
-def index(request):
+def index(request, permission_error=None):
     context = {}
     if not request.user.is_authenticated():
         template_response = views.login(request, template_name='cabs_admin/logindex.html', current_app='cabs_admin', extra_context=context)
@@ -63,8 +63,14 @@ def index(request):
             user_string = "You have permissions to {0}.".format(permissions)
         else:
             user_string = "You has no administrator permissions."
+        
         context['permissions'] = user_string
         context['section_name'] = "Welcome {0}".format(request.user.get_username()) 
+        
+        if permission_error:
+            context['permission_error'] = "You do not have permissions to " + permission_error + "."
+        else:
+            context['permission_error'] = None
         return render(request, 'cabs_admin/index.html', context)
 
 def logoutView(request):
